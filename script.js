@@ -12,8 +12,8 @@ const translations = {
     log_general_info: "General Information",
     log_fuel_price: "Fuel Price (R$ / L)",
     log_extra_expenses: "Additional Expenses (Tolls, Parking)",
-    log_outbound: "Outbound (Ida)",
-    log_return: "Return (Volta)",
+    log_outbound: "Outbound",
+    log_return: "Return",
     log_distance: "Distance (km)",
     log_efficiency: "Efficiency (km/L)",
     log_participants: "Participants Present:",
@@ -24,7 +24,7 @@ const translations = {
     dash_total_outstanding: "Total Outstanding Balance",
     dash_participant_balances: "Participant Balances",
     table_name: "Name",
-    table_trips: "Trips (Ida/Volta)",
+    table_trips: "Trips",
     table_unpaid_balance: "Unpaid Balance",
     table_actions: "Actions",
     table_date: "Date",
@@ -57,6 +57,8 @@ const translations = {
     js_btn_send: "Send",
     js_settled: "Settled",
     js_pax: "Pax",
+    js_ida: "Outbound",
+    js_volta: "Return",
     js_wa_msg: "Fala {name}, aqui é o resumo das suas caronas na semana de {date}: Total R${amount}. (Ida: {ida} viagens, Volta: {volta} viagens). Valeu!"
   },
   pt: {
@@ -113,6 +115,8 @@ const translations = {
     js_btn_send: "Enviar",
     js_settled: "Quitado",
     js_pax: "Pax",
+    js_ida: "Ida",
+    js_volta: "Volta",
     js_wa_msg: "Fala {name}, aqui é o resumo das suas caronas na semana de {date}: Total R${amount}. (Ida: {ida} viagens, Volta: {volta} viagens). Valeu!"
   }
 };
@@ -427,11 +431,11 @@ function calculatePreview() {
       let breakdown = [];
       if (outIds.includes(c.id)) {
         cost += outPerPerson;
-        breakdown.push('Ida');
+        breakdown.push(t('js_ida'));
       }
       if (retIds.includes(c.id)) {
         cost += retPerPerson;
-        breakdown.push('Volta');
+        breakdown.push(t('js_volta'));
       }
       if (uniqueIds.has(c.id)) {
         cost += extraPerPerson;
