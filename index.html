@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Carpool Cost Manager</title>
+  <title data-i18n="app_title">Carpool Cost Manager</title>
   <meta name="author" content="Caio Cavalcante">
   <meta name="keywords" content="calculator, SPA, HTML, project">
   <meta name="description" content="Calculator for ride fees">
@@ -11,30 +11,30 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="min-h-screen pb-20">
+<body class="min-h-screen pb-20 relative">
 
   <!-- Header -->
   <header class="glass-panel sticky top-0 z-10 shadow-md">
     <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3 text-primary">
         <i class="fa-solid fa-car-side text-2xl"></i>
-        <h1 class="text-xl font-bold tracking-wide">Carpool Cost Manager</h1>
+        <h1 class="text-xl font-bold tracking-wide" data-i18n="app_title">Carpool Cost Manager</h1>
       </div>
     </div>
     
     <!-- Tab Navigation -->
     <nav class="max-w-4xl mx-auto px-4 flex overflow-x-auto no-scrollbar">
       <button class="tab-btn active whitespace-nowrap flex-1 text-center" data-tab="tab-logger">
-        <i class="fa-solid fa-pen-to-square mr-2"></i>Logger
+        <i class="fa-solid fa-pen-to-square mr-2"></i><span data-i18n="tab_logger">Logger</span>
       </button>
       <button class="tab-btn whitespace-nowrap flex-1 text-center" data-tab="tab-dashboard">
-        <i class="fa-solid fa-chart-pie mr-2"></i>Dashboard
+        <i class="fa-solid fa-chart-pie mr-2"></i><span data-i18n="tab_dashboard">Dashboard</span>
       </button>
       <button class="tab-btn whitespace-nowrap flex-1 text-center" data-tab="tab-history">
-        <i class="fa-solid fa-clock-rotate-left mr-2"></i>History
+        <i class="fa-solid fa-clock-rotate-left mr-2"></i><span data-i18n="tab_history">History</span>
       </button>
       <button class="tab-btn whitespace-nowrap flex-1 text-center" data-tab="tab-settings">
-        <i class="fa-solid fa-gear mr-2"></i>Settings
+        <i class="fa-solid fa-gear mr-2"></i><span data-i18n="tab_settings">Settings</span>
       </button>
     </nav>
   </header>
@@ -48,18 +48,18 @@
       <!-- General Trip Info -->
       <div class="card space-y-4">
         <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-2">
-          <i class="fa-solid fa-gas-pump text-primary"></i> General Information
+          <i class="fa-solid fa-gas-pump text-primary"></i> <span data-i18n="log_general_info">General Information</span>
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm mb-1">Fuel Price (R$ / L)</label>
+            <label class="block text-sm mb-1" data-i18n="log_fuel_price">Fuel Price (R$ / L)</label>
             <div class="relative">
               <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">R$</span>
               <input type="number" id="log-fuel-price" class="input-field pl-10" step="0.01" min="0">
             </div>
           </div>
           <div>
-            <label class="block text-sm mb-1">Additional Expenses (Tolls, Parking)</label>
+            <label class="block text-sm mb-1" data-i18n="log_extra_expenses">Additional Expenses (Tolls, Parking)</label>
             <div class="relative">
               <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">R$</span>
               <input type="number" id="log-extra-expenses" class="input-field pl-10" step="0.01" min="0" value="0.00">
@@ -72,21 +72,21 @@
         <!-- Outbound (Ida) -->
         <div class="card space-y-4 border-t-4 border-t-primary">
           <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-2">
-            <i class="fa-solid fa-arrow-right-from-bracket text-primary"></i> Outbound (Ida)
+            <i class="fa-solid fa-arrow-right-from-bracket text-primary"></i> <span data-i18n="log_outbound">Outbound (Ida)</span>
           </h2>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm mb-1">Distance (km)</label>
+              <label class="block text-sm mb-1" data-i18n="log_distance">Distance (km)</label>
               <input type="number" id="log-outbound-dist" class="input-field" step="0.1" min="0">
             </div>
             <div>
-              <label class="block text-sm mb-1">Efficiency (km/L)</label>
+              <label class="block text-sm mb-1" data-i18n="log_efficiency">Efficiency (km/L)</label>
               <input type="number" id="log-outbound-eff" class="input-field" step="0.1" min="0.1">
             </div>
           </div>
           <div>
-            <h3 class="text-sm font-semibold mb-2">Participants Present:</h3>
-            <p class="text-xs text-gray-400 mb-3"><i class="fa-solid fa-circle-info"></i> Driver is automatically included in cost split.</p>
+            <h3 class="text-sm font-semibold mb-2" data-i18n="log_participants">Participants Present:</h3>
+            <p class="text-xs text-gray-400 mb-3"><i class="fa-solid fa-circle-info"></i> <span data-i18n="log_driver_info">Driver is automatically included in cost split.</span></p>
             <div id="outbound-participants" class="space-y-1 max-h-48 overflow-y-auto pr-2">
               <!-- Dynamically populated -->
             </div>
@@ -96,21 +96,21 @@
         <!-- Return (Volta) -->
         <div class="card space-y-4 border-t-4 border-t-accent">
           <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-2">
-            <i class="fa-solid fa-arrow-right-to-bracket text-accent"></i> Return (Volta)
+            <i class="fa-solid fa-arrow-right-to-bracket text-accent"></i> <span data-i18n="log_return">Return (Volta)</span>
           </h2>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm mb-1">Distance (km)</label>
+              <label class="block text-sm mb-1" data-i18n="log_distance">Distance (km)</label>
               <input type="number" id="log-return-dist" class="input-field" step="0.1" min="0">
             </div>
             <div>
-              <label class="block text-sm mb-1">Efficiency (km/L)</label>
+              <label class="block text-sm mb-1" data-i18n="log_efficiency">Efficiency (km/L)</label>
               <input type="number" id="log-return-eff" class="input-field" step="0.1" min="0.1">
             </div>
           </div>
           <div>
-            <h3 class="text-sm font-semibold mb-2">Participants Present:</h3>
-            <p class="text-xs text-gray-400 mb-3"><i class="fa-solid fa-circle-info"></i> Driver is automatically included in cost split.</p>
+            <h3 class="text-sm font-semibold mb-2" data-i18n="log_participants">Participants Present:</h3>
+            <p class="text-xs text-gray-400 mb-3"><i class="fa-solid fa-circle-info"></i> <span data-i18n="log_driver_info">Driver is automatically included in cost split.</span></p>
             <div id="return-participants" class="space-y-1 max-h-48 overflow-y-auto pr-2">
               <!-- Dynamically populated -->
             </div>
@@ -122,14 +122,14 @@
       <div class="card glass-panel sticky bottom-4">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
           <div class="text-center md:text-left">
-            <p class="text-sm">Total Trip Cost</p>
+            <p class="text-sm" data-i18n="log_total_trip_cost">Total Trip Cost</p>
             <p class="text-3xl font-bold text-success">R$ <span id="preview-total-cost">0.00</span></p>
           </div>
           <div class="flex-1 px-4 max-h-24 overflow-y-auto" id="preview-splits">
             <!-- Dynamically populated preview of splits -->
           </div>
           <button id="btn-save-trip" class="btn-primary w-full md:w-auto">
-            <i class="fa-solid fa-floppy-disk"></i> Save Trip
+            <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="log_save_trip">Save Trip</span>
           </button>
         </div>
       </div>
@@ -146,7 +146,7 @@
             <i class="fa-solid fa-money-bill-transfer text-2xl text-danger"></i>
           </div>
           <div>
-            <p class="text-sm text-gray-400">Total Expenses (All Trips)</p>
+            <p class="text-sm text-gray-400" data-i18n="dash_total_expenses">Total Expenses (All Trips)</p>
             <p class="text-3xl font-bold">R$ <span id="dash-total-expenses">0.00</span></p>
           </div>
         </div>
@@ -155,7 +155,7 @@
             <i class="fa-solid fa-hand-holding-dollar text-2xl text-success"></i>
           </div>
           <div>
-            <p class="text-sm text-gray-400">Total Outstanding Balance</p>
+            <p class="text-sm text-gray-400" data-i18n="dash_total_outstanding">Total Outstanding Balance</p>
             <p class="text-3xl font-bold">R$ <span id="dash-total-outstanding">0.00</span></p>
           </div>
         </div>
@@ -164,16 +164,16 @@
       <!-- Per Person Breakdown -->
       <div class="card">
         <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-3 mb-4">
-          <i class="fa-solid fa-users text-primary"></i> Participant Balances
+          <i class="fa-solid fa-users text-primary"></i> <span data-i18n="dash_participant_balances">Participant Balances</span>
         </h2>
         <div class="overflow-x-auto">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Trips (Ida/Volta)</th>
-                <th>Unpaid Balance</th>
-                <th>Actions</th>
+                <th data-i18n="table_name">Name</th>
+                <th data-i18n="table_trips">Trips (Ida/Volta)</th>
+                <th data-i18n="table_unpaid_balance">Unpaid Balance</th>
+                <th data-i18n="table_actions">Actions</th>
               </tr>
             </thead>
             <tbody id="dash-balances-body">
@@ -190,18 +190,18 @@
       <div class="card">
         <div class="flex justify-between items-center border-b border-surface pb-3 mb-4">
           <h2 class="text-lg font-bold flex items-center gap-2">
-            <i class="fa-solid fa-list text-primary"></i> Saved Trips
+            <i class="fa-solid fa-list text-primary"></i> <span data-i18n="hist_saved_trips">Saved Trips</span>
           </h2>
         </div>
         <div class="overflow-x-auto">
           <table class="data-table text-sm">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Total Cost</th>
-                <th>Outbound Info</th>
-                <th>Return Info</th>
-                <th>Actions</th>
+                <th data-i18n="table_date">Date</th>
+                <th data-i18n="table_total_cost">Total Cost</th>
+                <th data-i18n="table_outbound_info">Outbound Info</th>
+                <th data-i18n="table_return_info">Return Info</th>
+                <th data-i18n="table_actions">Actions</th>
               </tr>
             </thead>
             <tbody id="history-body">
@@ -218,14 +218,14 @@
       <!-- Global Defaults -->
       <div class="card">
         <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-3 mb-4">
-          <i class="fa-solid fa-sliders text-primary"></i> Global Defaults
+          <i class="fa-solid fa-sliders text-primary"></i> <span data-i18n="set_global_defaults">Global Defaults</span>
         </h2>
         <div class="max-w-md">
-          <label class="block text-sm mb-1">Default Fuel Price (R$ / L)</label>
+          <label class="block text-sm mb-1" data-i18n="set_default_fuel">Default Fuel Price (R$ / L)</label>
           <div class="relative flex items-center gap-3">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">R$</span>
             <input type="number" id="settings-fuel-price" class="input-field pl-10" step="0.01" min="0">
-            <button id="btn-save-settings" class="btn-primary whitespace-nowrap">Save</button>
+            <button id="btn-save-settings" class="btn-primary whitespace-nowrap" data-i18n="set_save">Save</button>
           </div>
         </div>
       </div>
@@ -233,18 +233,18 @@
       <!-- Manage Carpoolers -->
       <div class="card">
         <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-3 mb-4">
-          <i class="fa-solid fa-address-book text-primary"></i> Manage Carpoolers
+          <i class="fa-solid fa-address-book text-primary"></i> <span data-i18n="set_manage_carpoolers">Manage Carpoolers</span>
         </h2>
         
         <form id="form-add-carpooler" class="flex flex-col md:flex-row gap-4 mb-6">
           <div class="flex-1">
-            <input type="text" id="new-carpooler-name" placeholder="Name" class="input-field" required>
+            <input type="text" id="new-carpooler-name" data-i18n-placeholder="set_name_placeholder" placeholder="Name" class="input-field" required>
           </div>
           <div class="flex-1">
-            <input type="tel" id="new-carpooler-phone" placeholder="Phone (e.g. 5511999999999)" class="input-field" required>
+            <input type="tel" id="new-carpooler-phone" data-i18n-placeholder="set_phone_placeholder" placeholder="Phone (e.g. 5511999999999)" class="input-field" required>
           </div>
           <button type="submit" class="btn-primary">
-            <i class="fa-solid fa-plus"></i> Add
+            <i class="fa-solid fa-plus"></i> <span data-i18n="set_add">Add</span>
           </button>
         </form>
 
@@ -252,9 +252,9 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Phone (WhatsApp)</th>
-                <th>Actions</th>
+                <th data-i18n="table_name">Name</th>
+                <th data-i18n="table_phone">Phone (WhatsApp)</th>
+                <th data-i18n="table_actions">Actions</th>
               </tr>
             </thead>
             <tbody id="settings-carpoolers-body">
@@ -267,6 +267,16 @@
     </section>
 
   </main>
+
+  <!-- Controls FAB -->
+  <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+    <button id="btn-toggle-theme" class="w-12 h-12 rounded-full bg-surface border border-surface shadow-lg flex items-center justify-center text-text hover:text-primary transition-colors focus:outline-none" aria-label="Toggle Theme">
+      <i class="fa-solid fa-moon text-xl" id="icon-theme"></i>
+    </button>
+    <button id="btn-toggle-lang" class="w-12 h-12 rounded-full bg-surface border border-surface shadow-lg flex items-center justify-center text-text font-bold hover:text-primary transition-colors focus:outline-none" aria-label="Toggle Language">
+      EN
+    </button>
+  </div>
 
   <script src="script.js"></script>
 </body>
