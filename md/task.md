@@ -1,0 +1,15 @@
+- [x] Setup `index.html` structure with Tailwind and FontAwesome.
+- [x] Implement UI layout and tabs (Trip Logger, Dashboard, History, Settings).
+- [x] Setup `style.css` for custom dark/solarized theme.
+- [x] Implement `script.js` State Management (LocalStorage for settings, carpoolers, trips).
+- [x] Implement Settings logic (Add/remove carpoolers, set default fuel price).
+- [x] Implement Trip Logger logic:
+  - [x] Render carpooler checklists for Outbound and Return.
+  - [x] Implement real-time calculations: include driver (+1) in the split.
+  - [x] Save trip to history.
+- [x] Implement History tab logic (list trips, delete trips).
+- [x] Implement Dashboard logic:
+  - [x] Calculate total fuel cost and collected amounts.
+  - [x] Calculate per-person unpaid balances.
+  - [x] Implement "Mark as Paid" functionality.
+  - [x] Implement WhatsApp "Send" button with encoded message.
