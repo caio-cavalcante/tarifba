@@ -152,7 +152,7 @@ function applyTranslations() {
   
   const langBtn = document.getElementById('btn-toggle-lang');
   if (langBtn) {
-    langBtn.textContent = currentLang === 'en' ? 'PT' : 'EN';
+    langBtn.textContent = currentLang === 'en' ? 'EN' : 'PT';
   }
 }
 
