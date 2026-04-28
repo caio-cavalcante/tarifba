@@ -1,4 +1,193 @@
 // ==========================================
+// TRANSLATIONS & THEME
+// ==========================================
+
+const translations = {
+  en: {
+    app_title: "Carpool Cost Manager",
+    tab_logger: "Logger",
+    tab_dashboard: "Dashboard",
+    tab_history: "History",
+    tab_settings: "Settings",
+    log_general_info: "General Information",
+    log_fuel_price: "Fuel Price (R$ / L)",
+    log_extra_expenses: "Additional Expenses (Tolls, Parking)",
+    log_outbound: "Outbound (Ida)",
+    log_return: "Return (Volta)",
+    log_distance: "Distance (km)",
+    log_efficiency: "Efficiency (km/L)",
+    log_participants: "Participants Present:",
+    log_driver_info: "Driver is automatically included in cost split.",
+    log_total_trip_cost: "Total Trip Cost",
+    log_save_trip: "Save Trip",
+    dash_total_expenses: "Total Expenses (All Trips)",
+    dash_total_outstanding: "Total Outstanding Balance",
+    dash_participant_balances: "Participant Balances",
+    table_name: "Name",
+    table_trips: "Trips (Ida/Volta)",
+    table_unpaid_balance: "Unpaid Balance",
+    table_actions: "Actions",
+    table_date: "Date",
+    table_total_cost: "Total Cost",
+    table_outbound_info: "Outbound Info",
+    table_return_info: "Return Info",
+    table_phone: "Phone (WhatsApp)",
+    hist_saved_trips: "Saved Trips",
+    set_global_defaults: "Global Defaults",
+    set_default_fuel: "Default Fuel Price (R$ / L)",
+    set_save: "Save",
+    set_manage_carpoolers: "Manage Carpoolers",
+    set_name_placeholder: "Name",
+    set_phone_placeholder: "Phone (e.g. 5511999999999)",
+    set_add: "Add",
+    // JS injected
+    js_alert_zero_cost: "Cannot save a trip with zero cost.",
+    js_alert_trip_saved: "Trip Saved Successfully!",
+    js_alert_fuel_saved: "Default Fuel Price saved!",
+    js_confirm_remove_user: "Are you sure you want to remove this carpooler?",
+    js_confirm_delete_trip: "Are you sure you want to delete this trip record? This will adjust balances.",
+    js_confirm_mark_paid: "Mark R$ {amount} as paid?",
+    js_empty_users: "No carpoolers added yet.",
+    js_empty_users_settings: "Go to Settings to add participants.",
+    js_empty_trips: "No trips logged yet.",
+    js_empty_data: "No data available.",
+    js_preview_empty: "Enter distances to see split.",
+    js_driver_you: "Driver (You)",
+    js_btn_paid: "Paid",
+    js_btn_send: "Send",
+    js_settled: "Settled",
+    js_pax: "Pax",
+    js_wa_msg: "Fala {name}, aqui é o resumo das suas caronas na semana de {date}: Total R${amount}. (Ida: {ida} viagens, Volta: {volta} viagens). Valeu!"
+  },
+  pt: {
+    app_title: "Gerenciador de Caronas",
+    tab_logger: "Registrar",
+    tab_dashboard: "Painel",
+    tab_history: "Histórico",
+    tab_settings: "Configurações",
+    log_general_info: "Informações Gerais",
+    log_fuel_price: "Preço do Combustível (R$ / L)",
+    log_extra_expenses: "Gastos Extras (Pedágio, Estacionamento)",
+    log_outbound: "Ida",
+    log_return: "Volta",
+    log_distance: "Distância (km)",
+    log_efficiency: "Eficiência (km/L)",
+    log_participants: "Participantes Presentes:",
+    log_driver_info: "O motorista é incluído automaticamente na divisão.",
+    log_total_trip_cost: "Custo Total da Viagem",
+    log_save_trip: "Salvar Viagem",
+    dash_total_expenses: "Gastos Totais (Todas as Viagens)",
+    dash_total_outstanding: "Saldo Devedor Total",
+    dash_participant_balances: "Saldos dos Participantes",
+    table_name: "Nome",
+    table_trips: "Viagens (Ida/Volta)",
+    table_unpaid_balance: "Saldo Devedor",
+    table_actions: "Ações",
+    table_date: "Data",
+    table_total_cost: "Custo Total",
+    table_outbound_info: "Info Ida",
+    table_return_info: "Info Volta",
+    table_phone: "Telefone (WhatsApp)",
+    hist_saved_trips: "Viagens Salvas",
+    set_global_defaults: "Padrões Globais",
+    set_default_fuel: "Preço Padrão do Combustível (R$ / L)",
+    set_save: "Salvar",
+    set_manage_carpoolers: "Gerenciar Participantes",
+    set_name_placeholder: "Nome",
+    set_phone_placeholder: "Celular (ex: 5511999999999)",
+    set_add: "Adicionar",
+    // JS injected
+    js_alert_zero_cost: "Não é possível salvar uma viagem com custo zero.",
+    js_alert_trip_saved: "Viagem salva com sucesso!",
+    js_alert_fuel_saved: "Preço padrão do combustível salvo!",
+    js_confirm_remove_user: "Tem certeza que deseja remover este participante?",
+    js_confirm_delete_trip: "Tem certeza que deseja excluir esta viagem? Isso ajustará os saldos.",
+    js_confirm_mark_paid: "Marcar R$ {amount} como pago?",
+    js_empty_users: "Nenhum participante adicionado ainda.",
+    js_empty_users_settings: "Vá em Configurações para adicionar participantes.",
+    js_empty_trips: "Nenhuma viagem registrada ainda.",
+    js_empty_data: "Sem dados disponíveis.",
+    js_preview_empty: "Insira as distâncias para ver a divisão.",
+    js_driver_you: "Motorista (Você)",
+    js_btn_paid: "Pago",
+    js_btn_send: "Enviar",
+    js_settled: "Quitado",
+    js_pax: "Pax",
+    js_wa_msg: "Fala {name}, aqui é o resumo das suas caronas na semana de {date}: Total R${amount}. (Ida: {ida} viagens, Volta: {volta} viagens). Valeu!"
+  }
+};
+
+let currentLang = localStorage.getItem('carpool_lang') || 'en';
+let currentTheme = localStorage.getItem('carpool_theme');
+
+if (!currentTheme) {
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    currentTheme = 'light';
+  } else {
+    currentTheme = 'dark';
+  }
+}
+
+function t(key, params = {}) {
+  let str = translations[currentLang][key] || key;
+  for (const [k, v] of Object.entries(params)) {
+    str = str.replace(`{${k}}`, v);
+  }
+  return str;
+}
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[currentLang] && translations[currentLang][key]) {
+      el.textContent = translations[currentLang][key];
+    }
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (translations[currentLang] && translations[currentLang][key]) {
+      el.setAttribute('placeholder', translations[currentLang][key]);
+    }
+  });
+  
+  const langBtn = document.getElementById('btn-toggle-lang');
+  if (langBtn) {
+    langBtn.textContent = currentLang === 'en' ? 'PT' : 'EN';
+  }
+}
+
+function toggleLanguage() {
+  currentLang = currentLang === 'en' ? 'pt' : 'en';
+  localStorage.setItem('carpool_lang', currentLang);
+  applyTranslations();
+  
+  // Re-render
+  renderCarpoolersSettings();
+  initLogger();
+  updateDashboard();
+  updateHistory();
+}
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  const icon = document.getElementById('icon-theme');
+  if (icon) {
+    if (currentTheme === 'light') {
+      icon.className = 'fa-solid fa-sun text-xl';
+    } else {
+      icon.className = 'fa-solid fa-moon text-xl';
+    }
+  }
+}
+
+function toggleTheme() {
+  currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+  localStorage.setItem('carpool_theme', currentTheme);
+  applyTheme();
+}
+
+
+// ==========================================
 // STATE MANAGEMENT
 // ==========================================
 
@@ -37,6 +226,13 @@ function saveState() {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
+  
+  applyTheme();
+  applyTranslations();
+
+  document.getElementById('btn-toggle-lang').addEventListener('click', toggleLanguage);
+  document.getElementById('btn-toggle-theme').addEventListener('click', toggleTheme);
+
   initTabs();
   initSettings();
   initLogger();
@@ -109,7 +305,7 @@ function initSettings() {
     if (!isNaN(val) && val >= 0) {
       state.settings.defaultFuelPrice = val;
       saveState();
-      alert('Default Fuel Price saved!');
+      alert(t('js_alert_fuel_saved'));
     }
   };
 
@@ -121,7 +317,7 @@ function renderCarpoolersSettings() {
   tbody.innerHTML = '';
   
   if (state.carpoolers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500">No carpoolers added yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500">${t('js_empty_users')}</td></tr>`;
     return;
   }
 
@@ -141,7 +337,7 @@ function renderCarpoolersSettings() {
 }
 
 window.deleteCarpooler = function(id) {
-  if(confirm('Are you sure you want to remove this carpooler?')) {
+  if(confirm(t('js_confirm_remove_user'))) {
     state.carpoolers = state.carpoolers.filter(c => c.id !== id);
     saveState();
     renderCarpoolersSettings();
@@ -178,7 +374,7 @@ function renderChecklist(containerId) {
   container.innerHTML = '';
   
   if (state.carpoolers.length === 0) {
-    container.innerHTML = `<p class="text-sm text-gray-500">Go to Settings to add participants.</p>`;
+    container.innerHTML = `<p class="text-sm text-gray-500">${t('js_empty_users_settings')}</p>`;
     return;
   }
 
@@ -254,12 +450,12 @@ function calculatePreview() {
     let driverCost = totalCost;
     Object.values(previewSplitsData).forEach(val => driverCost -= val);
     splitsHtml += `<div class="flex justify-between text-sm mt-2 text-gray-400">
-      <span>Driver (You)</span>
+      <span>${t('js_driver_you')}</span>
       <span class="font-mono">R$ ${driverCost.toFixed(2)}</span>
     </div>`;
 
   } else {
-    splitsHtml = '<p class="text-sm text-gray-500 text-center mt-4">Enter distances to see split.</p>';
+    splitsHtml = `<p class="text-sm text-gray-500 text-center mt-4">${t('js_preview_empty')}</p>`;
   }
 
   document.getElementById('preview-total-cost').innerText = totalCost.toFixed(2);
@@ -271,7 +467,7 @@ function calculatePreview() {
 function saveTrip() {
   const data = calculatePreview();
   if (data.totalCost <= 0) {
-    alert("Cannot save a trip with zero cost.");
+    alert(t('js_alert_zero_cost'));
     return;
   }
 
@@ -295,7 +491,7 @@ function saveTrip() {
   document.getElementById('log-extra-expenses').value = '0.00';
   calculatePreview();
   
-  alert("Trip Saved Successfully!");
+  alert(t('js_alert_trip_saved'));
 }
 
 // ==========================================
@@ -341,7 +537,13 @@ function updateDashboard() {
     weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Monday
     const dateStr = weekStart.toLocaleDateString();
     
-    const msg = `Hey ${c.name}, here is your carpool breakdown for the week of ${dateStr}: Total R$${balance.toFixed(2)}. (Ida: ${carpoolerDebts[c.id].tripsIda} trips, Volta: ${carpoolerDebts[c.id].tripsVolta} trips). Cheers!`;
+    const msg = t('js_wa_msg', {
+      name: c.name,
+      date: dateStr,
+      amount: balance.toFixed(2),
+      ida: carpoolerDebts[c.id].tripsIda,
+      volta: carpoolerDebts[c.id].tripsVolta
+    });
     const encodedMsg = encodeURIComponent(msg);
     const waLink = `https://wa.me/${c.phone}?text=${encodedMsg}`;
 
@@ -355,13 +557,13 @@ function updateDashboard() {
         <div class="flex gap-2">
           ${balance > 0 ? `
             <button class="btn-success text-xs py-1 px-2" onclick="markPaid('${c.id}', ${balance})">
-              <i class="fa-solid fa-check"></i> Paid
+              <i class="fa-solid fa-check"></i> ${t('js_btn_paid')}
             </button>
             <a href="${waLink}" target="_blank" class="btn-primary bg-green-600 hover:bg-green-700 text-xs py-1 px-2">
-              <i class="fa-brands fa-whatsapp"></i> Send
+              <i class="fa-brands fa-whatsapp"></i> ${t('js_btn_send')}
             </a>
           ` : `
-            <span class="text-xs text-gray-500 italic">Settled</span>
+            <span class="text-xs text-gray-500 italic">${t('js_settled')}</span>
           `}
         </div>
       </td>
@@ -370,14 +572,14 @@ function updateDashboard() {
   });
 
   if (state.carpoolers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500">No data available.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500">${t('js_empty_data')}</td></tr>`;
   }
 
   document.getElementById('dash-total-outstanding').innerText = totalOutstanding.toFixed(2);
 }
 
 window.markPaid = function(userId, amount) {
-  if(confirm(`Mark R$ ${amount.toFixed(2)} as paid?`)) {
+  if(confirm(t('js_confirm_mark_paid', {amount: amount.toFixed(2)}))) {
     const user = state.carpoolers.find(c => c.id === userId);
     if (user) {
       user.totalPaid = (user.totalPaid || 0) + amount;
@@ -396,25 +598,25 @@ function updateHistory() {
   tbody.innerHTML = '';
 
   if (state.trips.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500">No trips logged yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500">${t('js_empty_trips')}</td></tr>`;
     return;
   }
 
   // Sort newest first
   const sortedTrips = [...state.trips].sort((a,b) => new Date(b.date) - new Date(a.date));
 
-  sortedTrips.forEach(t => {
-    const dateObj = new Date(t.date);
+  sortedTrips.forEach(tobj => {
+    const dateObj = new Date(tobj.date);
     const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="whitespace-nowrap">${dateStr}</td>
-      <td class="font-mono text-success font-bold">R$ ${t.totalCost.toFixed(2)}</td>
-      <td class="text-xs text-gray-400">${t.outboundInfo.dist}km (${t.outboundInfo.eff}km/L) <br> <i class="fa-solid fa-users"></i> ${t.outboundInfo.count} Pax</td>
-      <td class="text-xs text-gray-400">${t.returnInfo.dist}km (${t.returnInfo.eff}km/L) <br> <i class="fa-solid fa-users"></i> ${t.returnInfo.count} Pax</td>
+      <td class="font-mono text-success font-bold">R$ ${tobj.totalCost.toFixed(2)}</td>
+      <td class="text-xs text-gray-400">${tobj.outboundInfo.dist}km (${tobj.outboundInfo.eff}km/L) <br> <i class="fa-solid fa-users"></i> ${tobj.outboundInfo.count} ${t('js_pax')}</td>
+      <td class="text-xs text-gray-400">${tobj.returnInfo.dist}km (${tobj.returnInfo.eff}km/L) <br> <i class="fa-solid fa-users"></i> ${tobj.returnInfo.count} ${t('js_pax')}</td>
       <td>
-        <button class="text-danger hover:text-red-400" onclick="deleteTrip('${t.id}')">
+        <button class="text-danger hover:text-red-400" onclick="deleteTrip('${tobj.id}')">
           <i class="fa-solid fa-trash"></i>
         </button>
       </td>
@@ -424,7 +626,7 @@ function updateHistory() {
 }
 
 window.deleteTrip = function(tripId) {
-  if (confirm("Are you sure you want to delete this trip record? This will adjust balances.")) {
+  if (confirm(t('js_confirm_delete_trip'))) {
     state.trips = state.trips.filter(t => t.id !== tripId);
     saveState();
     updateHistory();
