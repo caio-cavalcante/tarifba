@@ -1,137 +1,273 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="author" content="Caio Cavalcante">
-    <meta name="keywords" content="calculator, SPA, HTML, project">
-    <meta name="description" content="Calculator for ride fees">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ride Calculator</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carpool Cost Manager</title>
+  <meta name="author" content="Caio Cavalcante">
+  <meta name="keywords" content="calculator, SPA, HTML, project">
+  <meta name="description" content="Calculator for ride fees">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
 </head>
-<body> 
-    <h1>Calculadora de carona</h1>
-    <hr>
+<body class="min-h-screen pb-20">
+
+  <!-- Header -->
+  <header class="glass-panel sticky top-0 z-10 shadow-md">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3 text-primary">
+        <i class="fa-solid fa-car-side text-2xl"></i>
+        <h1 class="text-xl font-bold tracking-wide">Carpool Cost Manager</h1>
+      </div>
+    </div>
     
-    <table bgcolor="darkgrey" width = "480px">
-        <tr bgcolor="lightblue">
-            <th>Pessoa</th>
-            <th>Segunda</th>
-            <th>Terça</th>
-            <th>Quarta</th>
-            <th>Quinta</th>
-            <th>Sexta</th>
-        </tr>
+    <!-- Tab Navigation -->
+    <nav class="max-w-4xl mx-auto px-4 flex overflow-x-auto no-scrollbar">
+      <button class="tab-btn active whitespace-nowrap flex-1 text-center" data-tab="tab-logger">
+        <i class="fa-solid fa-pen-to-square mr-2"></i>Logger
+      </button>
+      <button class="tab-btn whitespace-nowrap flex-1 text-center" data-tab="tab-dashboard">
+        <i class="fa-solid fa-chart-pie mr-2"></i>Dashboard
+      </button>
+      <button class="tab-btn whitespace-nowrap flex-1 text-center" data-tab="tab-history">
+        <i class="fa-solid fa-clock-rotate-left mr-2"></i>History
+      </button>
+      <button class="tab-btn whitespace-nowrap flex-1 text-center" data-tab="tab-settings">
+        <i class="fa-solid fa-gear mr-2"></i>Settings
+      </button>
+    </nav>
+  </header>
 
-        <td>
-            Pedro
-            Rafael
-            Joseph
-        </td>
+  <!-- Main Content Area -->
+  <main class="max-w-4xl mx-auto px-4 py-6">
 
-        <td>
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="2">só volta</option>
-            </select>
+    <!-- TAB: LOGGER -->
+    <section id="tab-logger" class="tab-content active space-y-6">
+      
+      <!-- General Trip Info -->
+      <div class="card space-y-4">
+        <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-2">
+          <i class="fa-solid fa-gas-pump text-primary"></i> General Information
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm mb-1">Fuel Price (R$ / L)</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">R$</span>
+              <input type="number" id="log-fuel-price" class="input-field pl-10" step="0.01" min="0">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Additional Expenses (Tolls, Parking)</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">R$</span>
+              <input type="number" id="log-extra-expenses" class="input-field pl-10" step="0.01" min="0" value="0.00">
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="1">só ida</option>
-                <option value="2">só volta</option>
-                <option value="3">ida e volta</option>
-            </select>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Outbound (Ida) -->
+        <div class="card space-y-4 border-t-4 border-t-primary">
+          <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-2">
+            <i class="fa-solid fa-arrow-right-from-bracket text-primary"></i> Outbound (Ida)
+          </h2>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm mb-1">Distance (km)</label>
+              <input type="number" id="log-outbound-dist" class="input-field" step="0.1" min="0">
+            </div>
+            <div>
+              <label class="block text-sm mb-1">Efficiency (km/L)</label>
+              <input type="number" id="log-outbound-eff" class="input-field" step="0.1" min="0.1">
+            </div>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold mb-2">Participants Present:</h3>
+            <p class="text-xs text-gray-400 mb-3"><i class="fa-solid fa-circle-info"></i> Driver is automatically included in cost split.</p>
+            <div id="outbound-participants" class="space-y-1 max-h-48 overflow-y-auto pr-2">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
 
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="1">só ida</option>
-                <option value="2">só volta</option>
-                <option value="3">ida e volta</option>
-            </select>
-        </td>
+        <!-- Return (Volta) -->
+        <div class="card space-y-4 border-t-4 border-t-accent">
+          <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-2">
+            <i class="fa-solid fa-arrow-right-to-bracket text-accent"></i> Return (Volta)
+          </h2>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm mb-1">Distance (km)</label>
+              <input type="number" id="log-return-dist" class="input-field" step="0.1" min="0">
+            </div>
+            <div>
+              <label class="block text-sm mb-1">Efficiency (km/L)</label>
+              <input type="number" id="log-return-eff" class="input-field" step="0.1" min="0.1">
+            </div>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold mb-2">Participants Present:</h3>
+            <p class="text-xs text-gray-400 mb-3"><i class="fa-solid fa-circle-info"></i> Driver is automatically included in cost split.</p>
+            <div id="return-participants" class="space-y-1 max-h-48 overflow-y-auto pr-2">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <td>
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="2">só volta</option>
-            </select>
+      <!-- Live Preview & Save -->
+      <div class="card glass-panel sticky bottom-4">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div class="text-center md:text-left">
+            <p class="text-sm">Total Trip Cost</p>
+            <p class="text-3xl font-bold text-success">R$ <span id="preview-total-cost">0.00</span></p>
+          </div>
+          <div class="flex-1 px-4 max-h-24 overflow-y-auto" id="preview-splits">
+            <!-- Dynamically populated preview of splits -->
+          </div>
+          <button id="btn-save-trip" class="btn-primary w-full md:w-auto">
+            <i class="fa-solid fa-floppy-disk"></i> Save Trip
+          </button>
+        </div>
+      </div>
 
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="1">só ida</option>
-                <option value="2">só volta</option>
-                <option value="3">ida e volta</option>
-            </select>
+    </section>
 
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="1">só ida</option>
-                <option value="2">só volta</option>
-                <option value="3">ida e volta</option>
-            </select>
-        </td>
+    <!-- TAB: DASHBOARD -->
+    <section id="tab-dashboard" class="tab-content hidden space-y-6">
+      
+      <!-- Global Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="card flex items-center p-6 gap-4 border-l-4 border-l-danger">
+          <div class="p-4 bg-surface rounded-full">
+            <i class="fa-solid fa-money-bill-transfer text-2xl text-danger"></i>
+          </div>
+          <div>
+            <p class="text-sm text-gray-400">Total Expenses (All Trips)</p>
+            <p class="text-3xl font-bold">R$ <span id="dash-total-expenses">0.00</span></p>
+          </div>
+        </div>
+        <div class="card flex items-center p-6 gap-4 border-l-4 border-l-success">
+          <div class="p-4 bg-surface rounded-full">
+            <i class="fa-solid fa-hand-holding-dollar text-2xl text-success"></i>
+          </div>
+          <div>
+            <p class="text-sm text-gray-400">Total Outstanding Balance</p>
+            <p class="text-3xl font-bold">R$ <span id="dash-total-outstanding">0.00</span></p>
+          </div>
+        </div>
+      </div>
 
-        <td>
-           <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="2">só volta</option>
-            </select>
+      <!-- Per Person Breakdown -->
+      <div class="card">
+        <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-3 mb-4">
+          <i class="fa-solid fa-users text-primary"></i> Participant Balances
+        </h2>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Trips (Ida/Volta)</th>
+                <th>Unpaid Balance</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="dash-balances-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="1">só ida</option>
-                <option value="2">só volta</option>
-                <option value="3">ida e volta</option>
-            </select>
-            
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="1">só ida</option>
-                <option value="2">só volta</option>
-                <option value="3">ida e volta</option>
-            </select>
-        </td>
+    </section>
 
-        <td>
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="2">só volta</option>
-            </select>
+    <!-- TAB: HISTORY -->
+    <section id="tab-history" class="tab-content hidden space-y-6">
+      <div class="card">
+        <div class="flex justify-between items-center border-b border-surface pb-3 mb-4">
+          <h2 class="text-lg font-bold flex items-center gap-2">
+            <i class="fa-solid fa-list text-primary"></i> Saved Trips
+          </h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table text-sm">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Total Cost</th>
+                <th>Outbound Info</th>
+                <th>Return Info</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="history-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
 
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="1">só ida</option>
-                <option value="2">só volta</option>
-                <option value="3">ida e volta</option>
-            </select>
-            
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="1">só ida</option>
-                <option value="2">só volta</option>
-                <option value="3">ida e volta</option>
-            </select>
-        </td>
+    <!-- TAB: SETTINGS -->
+    <section id="tab-settings" class="tab-content hidden space-y-6">
+      
+      <!-- Global Defaults -->
+      <div class="card">
+        <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-3 mb-4">
+          <i class="fa-solid fa-sliders text-primary"></i> Global Defaults
+        </h2>
+        <div class="max-w-md">
+          <label class="block text-sm mb-1">Default Fuel Price (R$ / L)</label>
+          <div class="relative flex items-center gap-3">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">R$</span>
+            <input type="number" id="settings-fuel-price" class="input-field pl-10" step="0.01" min="0">
+            <button id="btn-save-settings" class="btn-primary whitespace-nowrap">Save</button>
+          </div>
+        </div>
+      </div>
 
-        <td>
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="2">só volta</option>
-            </select>
+      <!-- Manage Carpoolers -->
+      <div class="card">
+        <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-3 mb-4">
+          <i class="fa-solid fa-address-book text-primary"></i> Manage Carpoolers
+        </h2>
+        
+        <form id="form-add-carpooler" class="flex flex-col md:flex-row gap-4 mb-6">
+          <div class="flex-1">
+            <input type="text" id="new-carpooler-name" placeholder="Name" class="input-field" required>
+          </div>
+          <div class="flex-1">
+            <input type="tel" id="new-carpooler-phone" placeholder="Phone (e.g. 5511999999999)" class="input-field" required>
+          </div>
+          <button type="submit" class="btn-primary">
+            <i class="fa-solid fa-plus"></i> Add
+          </button>
+        </form>
 
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="1">só ida</option>
-                <option value="2">só volta</option>
-                <option value="3">ida e volta</option>
-            </select>
-            
-            <select name="" id="">
-                <option value="0">não foi</option>
-                <option value="1">só ida</option>
-                <option value="2">só volta</option>
-                <option value="3">ida e volta</option>
-            </select>
-        </td>
-    </table>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone (WhatsApp)</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="settings-carpoolers-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
 </body>
 </html>
