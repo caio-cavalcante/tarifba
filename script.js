@@ -42,6 +42,8 @@ const translations = {
     set_add: "Add",
     // JS injected
     js_alert_zero_cost: "Cannot save a trip with zero cost.",
+    js_alert_invalid_fuel: "Fuel price must be greater than 0.",
+    js_alert_invalid_eff: "Efficiency must be greater than 0.",
     js_alert_trip_saved: "Trip Saved Successfully!",
     js_alert_fuel_saved: "Default Fuel Price saved!",
     js_confirm_remove_user: "Are you sure you want to remove this carpooler?",
@@ -100,6 +102,8 @@ const translations = {
     set_add: "Adicionar",
     // JS injected
     js_alert_zero_cost: "Não é possível salvar uma viagem com custo zero.",
+    js_alert_invalid_fuel: "O preço do combustível deve ser maior que 0.",
+    js_alert_invalid_eff: "A eficiência deve ser maior que 0.",
     js_alert_trip_saved: "Viagem salva com sucesso!",
     js_alert_fuel_saved: "Preço padrão do combustível salvo!",
     js_confirm_remove_user: "Tem certeza que deseja remover este participante?",
@@ -399,17 +403,17 @@ function calculatePreview() {
   const extra = parseFloat(document.getElementById('log-extra-expenses').value) || 0;
   
   const outDist = parseFloat(document.getElementById('log-outbound-dist').value) || 0;
-  const outEff = parseFloat(document.getElementById('log-outbound-eff').value) || 1;
+  const outEff = parseFloat(document.getElementById('log-outbound-eff').value) || 0;
   
   const retDist = parseFloat(document.getElementById('log-return-dist').value) || 0;
-  const retEff = parseFloat(document.getElementById('log-return-eff').value) || 1;
+  const retEff = parseFloat(document.getElementById('log-return-eff').value) || 0;
 
   const outIds = Array.from(document.querySelectorAll('#outbound-participants input:checked')).map(el => el.value);
   const retIds = Array.from(document.querySelectorAll('#return-participants input:checked')).map(el => el.value);
 
   // Math
-  const outCost = (outDist / outEff) * fuelPrice;
-  const retCost = (retDist / retEff) * fuelPrice;
+  const outCost = (outDist > 0 && outEff > 0) ? (outDist / outEff) * fuelPrice : 0;
+  const retCost = (retDist > 0 && retEff > 0) ? (retDist / retEff) * fuelPrice : 0;
   const totalCost = outCost + retCost + extra;
 
   // Split: Driver is +1
@@ -442,7 +446,12 @@ function calculatePreview() {
       }
 
       if (cost > 0) {
-        previewSplitsData[c.id] = cost;
+        previewSplitsData[c.id] = {
+          total: cost,
+          ida: outIds.includes(c.id) ? outPerPerson : 0,
+          volta: retIds.includes(c.id) ? retPerPerson : 0,
+          extra: uniqueIds.has(c.id) ? extraPerPerson : 0
+        };
         splitsHtml += `<div class="flex justify-between text-sm mb-1 border-b border-surface pb-1">
           <span>${c.name} <span class="text-xs text-gray-500">(${breakdown.join(', ')})</span></span>
           <span class="font-mono">R$ ${cost.toFixed(2)}</span>
@@ -452,7 +461,7 @@ function calculatePreview() {
 
     // Driver slice
     let driverCost = totalCost;
-    Object.values(previewSplitsData).forEach(val => driverCost -= val);
+    Object.values(previewSplitsData).forEach(dataObj => driverCost -= dataObj.total);
     splitsHtml += `<div class="flex justify-between text-sm mt-2 text-gray-400">
       <span>${t('js_driver_you')}</span>
       <span class="font-mono">R$ ${driverCost.toFixed(2)}</span>
@@ -465,11 +474,22 @@ function calculatePreview() {
   document.getElementById('preview-total-cost').innerText = totalCost.toFixed(2);
   document.getElementById('preview-splits').innerHTML = splitsHtml;
 
-  return { totalCost, outCost, retCost, extra, outIds, retIds, outDist, outEff, retDist, retEff, previewSplitsData };
+  return { totalCost, outCost, retCost, extra, outIds, retIds, outDist, outEff, retDist, retEff, previewSplitsData, fuelPrice };
 }
 
 function saveTrip() {
   const data = calculatePreview();
+  
+  if (data.fuelPrice <= 0) {
+    alert(t('js_alert_invalid_fuel'));
+    return;
+  }
+  
+  if ((data.outDist > 0 && data.outEff <= 0) || (data.retDist > 0 && data.retEff <= 0)) {
+    alert(t('js_alert_invalid_eff'));
+    return;
+  }
+
   if (data.totalCost <= 0) {
     alert(t('js_alert_zero_cost'));
     return;
@@ -512,9 +532,10 @@ function updateDashboard() {
 
   state.trips.forEach(t => {
     totalExpenses += t.totalCost;
-    for (const [userId, cost] of Object.entries(t.individualCosts)) {
+    for (const [userId, costData] of Object.entries(t.individualCosts)) {
       if (carpoolerDebts[userId]) {
-        carpoolerDebts[userId].totalDebt += cost;
+        const costValue = typeof costData === 'number' ? costData : costData.total;
+        carpoolerDebts[userId].totalDebt += costValue;
       }
     }
     t.outIds.forEach(id => { if(carpoolerDebts[id]) carpoolerDebts[id].tripsIda++; });
