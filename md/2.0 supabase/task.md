@@ -1,0 +1,6 @@
+- [x] Created `env.js` configuration file
+- [x] Updated `index.html` to include Supabase CDN, `env.js`, and the "Join Code" input in Settings
+- [x] Create `supabase_schema.sql` for the user to set up their database
+- [x] Refactor `script.js` state management to fetch from Supabase
+- [x] Refactor `script.js` mutations (Create Trip, Delete Trip, Mark Paid, Add/Delete Carpooler) to write to Supabase
+- [x] Implement client-side Join Code check before any mutation operations
