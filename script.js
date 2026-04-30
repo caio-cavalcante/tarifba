@@ -40,7 +40,12 @@ const translations = {
     set_name_placeholder: "Name",
     set_phone_placeholder: "Phone (e.g. 5511999999999)",
     set_add: "Add",
+    set_join_code: "Admin Join Code",
+    set_join_code_placeholder: "Enter code",
     // JS injected
+    js_alert_wrong_join_code: "Invalid Join Code. You cannot make edits.",
+    js_alert_join_code_saved: "Join code saved.",
+    js_error_fetching: "Error fetching data.",
     js_alert_zero_cost: "Cannot save a trip with zero cost.",
     js_alert_invalid_fuel: "Fuel price must be greater than 0.",
     js_alert_invalid_eff: "Efficiency must be greater than 0.",
@@ -100,7 +105,12 @@ const translations = {
     set_name_placeholder: "Nome",
     set_phone_placeholder: "Celular (ex: 5511999999999)",
     set_add: "Adicionar",
+    set_join_code: "Código de Admin",
+    set_join_code_placeholder: "Digite o código",
     // JS injected
+    js_alert_wrong_join_code: "Código de acesso inválido. Você não pode fazer alterações.",
+    js_alert_join_code_saved: "Código de acesso salvo.",
+    js_error_fetching: "Erro ao buscar dados.",
     js_alert_zero_cost: "Não é possível salvar uma viagem com custo zero.",
     js_alert_invalid_fuel: "O preço do combustível deve ser maior que 0.",
     js_alert_invalid_eff: "A eficiência deve ser maior que 0.",
@@ -196,44 +206,103 @@ function toggleTheme() {
 
 
 // ==========================================
-// STATE MANAGEMENT
+// STATE MANAGEMENT & SUPABASE
 // ==========================================
-
-const STORAGE_KEY = 'carpool_manager_state';
 
 let state = {
   settings: {
     defaultFuelPrice: 5.50
   },
-  carpoolers: [], // { id, name, phone, totalPaid }
-  trips: []       // { id, date, totalCost, individualCosts: {id: cost}, outboundInfo, returnInfo }
+  carpoolers: [], 
+  trips: []       
 };
 
-function loadState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
+const supabaseUrl = window.env?.SUPABASE_URL || '';
+const supabaseKey = window.env?.SUPABASE_ANON_KEY || '';
+const supabase = (supabaseUrl && supabaseKey && window.supabase) ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
+
+let currentJoinCode = localStorage.getItem('carpool_join_code') || '';
+
+function checkJoinCode() {
+  const expectedCode = window.env?.JOIN_CODE || '';
+  if (!expectedCode) return true;
+  if (currentJoinCode !== expectedCode) {
+    alert(t('js_alert_wrong_join_code'));
+    return false;
+  }
+  return true;
+}
+
+function saveLocalSettings() {
+  localStorage.setItem('carpool_settings', JSON.stringify(state.settings));
+}
+
+function loadLocalSettings() {
+  const saved = localStorage.getItem('carpool_settings');
   if (saved) {
     try {
-      state = JSON.parse(saved);
-      // migrations for old data if needed
-      state.carpoolers.forEach(c => {
-        if (c.totalPaid === undefined) c.totalPaid = 0;
-      });
-    } catch (e) {
-      console.error('Failed to parse state from local storage', e);
-    }
+      state.settings = JSON.parse(saved);
+    } catch (e) {}
   }
 }
 
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+async function fetchData() {
+  if (!supabase) {
+    console.error("Supabase client not initialized.");
+    return;
+  }
+  try {
+    const { data: carpoolersData, error: cErr } = await supabase.from('carpoolers').select('*');
+    if (cErr) throw cErr;
+    
+    const { data: tripsData, error: tErr } = await supabase.from('trips').select('*, trip_participants(*)');
+    if (tErr) throw tErr;
+
+    state.carpoolers = carpoolersData.map(c => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      totalPaid: parseFloat(c.total_paid) || 0
+    }));
+
+    state.trips = tripsData.map(t => {
+      const outIds = t.trip_participants.filter(tp => tp.present_ida).map(tp => tp.carpooler_id);
+      const retIds = t.trip_participants.filter(tp => tp.present_volta).map(tp => tp.carpooler_id);
+      
+      const individualCosts = {};
+      t.trip_participants.forEach(tp => {
+        individualCosts[tp.carpooler_id] = {
+          total: parseFloat(tp.cost_total) || 0,
+          ida: parseFloat(tp.cost_ida) || 0,
+          volta: parseFloat(tp.cost_volta) || 0,
+          extra: parseFloat(tp.cost_extra) || 0
+        };
+      });
+
+      return {
+        id: t.id,
+        date: t.date,
+        totalCost: parseFloat(t.total_cost) || 0,
+        outboundInfo: { dist: parseFloat(t.outbound_dist) || 0, eff: parseFloat(t.outbound_eff) || 0, count: t.outbound_count || 0 },
+        returnInfo: { dist: parseFloat(t.return_dist) || 0, eff: parseFloat(t.return_eff) || 0, count: t.return_count || 0 },
+        individualCosts: individualCosts,
+        outIds: outIds,
+        retIds: retIds
+      };
+    });
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    alert(t('js_error_fetching'));
+  }
 }
 
 // ==========================================
 // INITIALIZATION
 // ==========================================
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadState();
+document.addEventListener('DOMContentLoaded', async () => {
+  loadLocalSettings();
   
   applyTheme();
   applyTranslations();
@@ -241,11 +310,27 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-toggle-lang').addEventListener('click', toggleLanguage);
   document.getElementById('btn-toggle-theme').addEventListener('click', toggleTheme);
 
+  const jcInput = document.getElementById('settings-join-code');
+  if (jcInput) jcInput.value = currentJoinCode;
+  
+  const jcBtn = document.getElementById('btn-save-join-code');
+  if (jcBtn) {
+    jcBtn.onclick = () => {
+      currentJoinCode = document.getElementById('settings-join-code').value.trim();
+      localStorage.setItem('carpool_join_code', currentJoinCode);
+      alert(t('js_alert_join_code_saved'));
+    };
+  }
+
   initTabs();
   initSettings();
+  
+  await fetchData();
+  
   initLogger();
   updateDashboard();
   updateHistory();
+  renderCarpoolersSettings();
 });
 
 // ==========================================
@@ -285,26 +370,32 @@ function initSettings() {
   document.getElementById('settings-fuel-price').value = state.settings.defaultFuelPrice.toFixed(2);
   
   const form = document.getElementById('form-add-carpooler');
-  form.onsubmit = (e) => {
+  form.onsubmit = async (e) => {
     e.preventDefault();
+    if (!checkJoinCode()) return;
+    
     const name = document.getElementById('new-carpooler-name').value.trim();
     let phone = document.getElementById('new-carpooler-phone').value.trim();
-    
-    // clean phone number (digits only)
     phone = phone.replace(/\D/g, '');
 
     if (name && phone) {
-      state.carpoolers.push({
-        id: 'user_' + Date.now(),
-        name,
-        phone,
-        totalPaid: 0
-      });
-      saveState();
-      document.getElementById('new-carpooler-name').value = '';
-      document.getElementById('new-carpooler-phone').value = '';
-      renderCarpoolersSettings();
-      initLogger(); // Update checkboxes
+      if (supabase) {
+        const { data, error } = await supabase.from('carpoolers').insert([{ name, phone, total_paid: 0 }]).select();
+        if (!error && data && data.length > 0) {
+          state.carpoolers.push({
+            id: data[0].id,
+            name,
+            phone,
+            totalPaid: 0
+          });
+          document.getElementById('new-carpooler-name').value = '';
+          document.getElementById('new-carpooler-phone').value = '';
+          renderCarpoolersSettings();
+          initLogger(); // Update checkboxes
+        } else {
+          console.error(error);
+        }
+      }
     }
   };
 
@@ -312,7 +403,7 @@ function initSettings() {
     const val = parseFloat(document.getElementById('settings-fuel-price').value);
     if (!isNaN(val) && val >= 0) {
       state.settings.defaultFuelPrice = val;
-      saveState();
+      saveLocalSettings();
       alert(t('js_alert_fuel_saved'));
     }
   };
@@ -344,11 +435,18 @@ function renderCarpoolersSettings() {
   });
 }
 
-window.deleteCarpooler = function(id) {
+window.deleteCarpooler = async function(id) {
+  if (!checkJoinCode()) return;
   if(confirm(t('js_confirm_remove_user'))) {
-    state.carpoolers = state.carpoolers.filter(c => c.id !== id);
-    saveState();
-    renderCarpoolersSettings();
+    if (supabase) {
+      const { error } = await supabase.from('carpoolers').delete().eq('id', id);
+      if (!error) {
+        state.carpoolers = state.carpoolers.filter(c => c.id !== id);
+        renderCarpoolersSettings();
+      } else {
+        console.error(error);
+      }
+    }
   }
 }
 
@@ -477,7 +575,8 @@ function calculatePreview() {
   return { totalCost, outCost, retCost, extra, outIds, retIds, outDist, outEff, retDist, retEff, previewSplitsData, fuelPrice };
 }
 
-function saveTrip() {
+async function saveTrip() {
+  if (!checkJoinCode()) return;
   const data = calculatePreview();
   
   if (data.fuelPrice <= 0) {
@@ -495,27 +594,56 @@ function saveTrip() {
     return;
   }
 
-  const trip = {
-    id: 'trip_' + Date.now(),
-    date: new Date().toISOString(),
-    totalCost: data.totalCost,
-    outboundInfo: { dist: data.outDist, eff: data.outEff, count: data.outIds.length },
-    returnInfo: { dist: data.retDist, eff: data.retEff, count: data.retIds.length },
-    individualCosts: data.previewSplitsData,
-    outIds: data.outIds,
-    retIds: data.retIds
-  };
+  if (supabase) {
+    const tripToInsert = {
+      date: new Date().toISOString(),
+      total_cost: data.totalCost,
+      outbound_dist: data.outDist,
+      outbound_eff: data.outEff,
+      outbound_count: data.outIds.length,
+      return_dist: data.retDist,
+      return_eff: data.retEff,
+      return_count: data.retIds.length
+    };
 
-  state.trips.push(trip);
-  saveState();
+    const { data: tripData, error: tripErr } = await supabase.from('trips').insert([tripToInsert]).select();
+    if (tripErr) {
+      console.error(tripErr);
+      return;
+    }
 
-  // Reset Form
-  document.getElementById('log-outbound-dist').value = '';
-  document.getElementById('log-return-dist').value = '';
-  document.getElementById('log-extra-expenses').value = '0.00';
-  calculatePreview();
-  
-  alert(t('js_alert_trip_saved'));
+    const tripId = tripData[0].id;
+    const participants = [];
+    
+    for (const [userId, costs] of Object.entries(data.previewSplitsData)) {
+      participants.push({
+        trip_id: tripId,
+        carpooler_id: userId,
+        cost_total: costs.total,
+        cost_ida: costs.ida,
+        cost_volta: costs.volta,
+        cost_extra: costs.extra,
+        present_ida: data.outIds.includes(userId),
+        present_volta: data.retIds.includes(userId)
+      });
+    }
+
+    if (participants.length > 0) {
+      const { error: partErr } = await supabase.from('trip_participants').insert(participants);
+      if (partErr) console.error(partErr);
+    }
+
+    // Refresh data instead of manual state push to ensure consistency
+    await fetchData();
+
+    // Reset Form
+    document.getElementById('log-outbound-dist').value = '';
+    document.getElementById('log-return-dist').value = '';
+    document.getElementById('log-extra-expenses').value = '0.00';
+    calculatePreview();
+    
+    alert(t('js_alert_trip_saved'));
+  }
 }
 
 // ==========================================
@@ -603,13 +731,19 @@ function updateDashboard() {
   document.getElementById('dash-total-outstanding').innerText = totalOutstanding.toFixed(2);
 }
 
-window.markPaid = function(userId, amount) {
+window.markPaid = async function(userId, amount) {
+  if (!checkJoinCode()) return;
   if(confirm(t('js_confirm_mark_paid', {amount: amount.toFixed(2)}))) {
     const user = state.carpoolers.find(c => c.id === userId);
-    if (user) {
-      user.totalPaid = (user.totalPaid || 0) + amount;
-      saveState();
-      updateDashboard();
+    if (user && supabase) {
+      const newTotal = (user.totalPaid || 0) + amount;
+      const { error } = await supabase.from('carpoolers').update({ total_paid: newTotal }).eq('id', userId);
+      if (!error) {
+        user.totalPaid = newTotal;
+        updateDashboard();
+      } else {
+        console.error(error);
+      }
     }
   }
 }
@@ -650,11 +784,18 @@ function updateHistory() {
   });
 }
 
-window.deleteTrip = function(tripId) {
+window.deleteTrip = async function(tripId) {
+  if (!checkJoinCode()) return;
   if (confirm(t('js_confirm_delete_trip'))) {
-    state.trips = state.trips.filter(t => t.id !== tripId);
-    saveState();
-    updateHistory();
-    // we also update dashboard just in case, though the tab switch handles it
+    if (supabase) {
+      const { error } = await supabase.from('trips').delete().eq('id', tripId);
+      if (!error) {
+        state.trips = state.trips.filter(t => t.id !== tripId);
+        updateHistory();
+        updateDashboard();
+      } else {
+        console.error(error);
+      }
+    }
   }
 }

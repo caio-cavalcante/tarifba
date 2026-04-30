@@ -220,12 +220,22 @@
         <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-3 mb-4">
           <i class="fa-solid fa-sliders text-primary"></i> <span data-i18n="set_global_defaults">Global Defaults</span>
         </h2>
-        <div class="max-w-md">
-          <label class="block text-sm mb-1" data-i18n="set_default_fuel">Default Fuel Price (R$ / L)</label>
-          <div class="relative flex items-center gap-3">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">R$</span>
-            <input type="number" id="settings-fuel-price" class="input-field pl-10" step="0.01" min="0">
-            <button id="btn-save-settings" class="btn-primary whitespace-nowrap" data-i18n="set_save">Save</button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm mb-1" data-i18n="set_default_fuel">Default Fuel Price (R$ / L)</label>
+            <div class="relative flex items-center gap-3">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">R$</span>
+              <input type="number" id="settings-fuel-price" class="input-field pl-10" step="0.01" min="0">
+              <button id="btn-save-settings" class="btn-primary whitespace-nowrap" data-i18n="set_save">Save</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm mb-1" data-i18n="set_join_code">Admin Join Code</label>
+            <div class="relative flex items-center gap-3">
+              <i class="fa-solid fa-lock absolute left-3 text-gray-500"></i>
+              <input type="password" id="settings-join-code" class="input-field pl-10" data-i18n-placeholder="set_join_code_placeholder" placeholder="Enter code">
+              <button id="btn-save-join-code" class="btn-primary whitespace-nowrap" data-i18n="set_save">Save</button>
+            </div>
           </div>
         </div>
       </div>
@@ -278,6 +288,8 @@
     </button>
   </div>
 
+  <script src="env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
 </body>
 </html>
