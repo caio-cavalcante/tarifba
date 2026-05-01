@@ -34,6 +34,24 @@ CREATE TABLE trip_participants (
   present_volta BOOLEAN DEFAULT false
 );
 
--- Create a view or just let the application handle the joins
--- Note: Remember to enable Row Level Security (RLS) if you plan to make it public,
--- but for now, based on the requirements, it's left open for the client-side Join Code logic.
+-- Enable Row Level Security (RLS) on all tables
+ALTER TABLE carpoolers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE trips ENABLE ROW LEVEL SECURITY;
+ALTER TABLE trip_participants ENABLE ROW LEVEL SECURITY;
+
+-- Create policies to allow all operations for anonymous users 
+-- (Security is handled client-side via the Join Code)
+CREATE POLICY "Allow anonymous SELECT on carpoolers" ON carpoolers FOR SELECT TO anon USING (true);
+CREATE POLICY "Allow anonymous INSERT on carpoolers" ON carpoolers FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Allow anonymous UPDATE on carpoolers" ON carpoolers FOR UPDATE TO anon USING (true);
+CREATE POLICY "Allow anonymous DELETE on carpoolers" ON carpoolers FOR DELETE TO anon USING (true);
+
+CREATE POLICY "Allow anonymous SELECT on trips" ON trips FOR SELECT TO anon USING (true);
+CREATE POLICY "Allow anonymous INSERT on trips" ON trips FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Allow anonymous UPDATE on trips" ON trips FOR UPDATE TO anon USING (true);
+CREATE POLICY "Allow anonymous DELETE on trips" ON trips FOR DELETE TO anon USING (true);
+
+CREATE POLICY "Allow anonymous SELECT on trip_participants" ON trip_participants FOR SELECT TO anon USING (true);
+CREATE POLICY "Allow anonymous INSERT on trip_participants" ON trip_participants FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Allow anonymous UPDATE on trip_participants" ON trip_participants FOR UPDATE TO anon USING (true);
+CREATE POLICY "Allow anonymous DELETE on trip_participants" ON trip_participants FOR DELETE TO anon USING (true);
