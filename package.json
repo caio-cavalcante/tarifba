@@ -1,0 +1,8 @@
+{
+  "name": "ride-calculator",
+  "version": "1.0.0",
+  "description": "Carpool Fuel Cost Manager",
+  "scripts": {
+    "build": "node generate-env.js"
+  }
+}
