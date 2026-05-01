@@ -42,6 +42,8 @@ const translations = {
     set_add: "Add",
     set_join_code: "Admin Join Code",
     set_join_code_placeholder: "Enter code",
+    set_pix_key: "PIX Key",
+    set_pix_placeholder: "Your PIX key",
     // JS injected
     js_alert_wrong_join_code: "Invalid Join Code. You cannot make edits.",
     js_alert_join_code_saved: "Join code saved.",
@@ -51,6 +53,7 @@ const translations = {
     js_alert_invalid_eff: "Efficiency must be greater than 0.",
     js_alert_trip_saved: "Trip Saved Successfully!",
     js_alert_fuel_saved: "Default Fuel Price saved!",
+    js_alert_pix_saved: "PIX Key saved!",
     js_confirm_remove_user: "Are you sure you want to remove this carpooler?",
     js_confirm_delete_trip: "Are you sure you want to delete this trip record? This will adjust balances.",
     js_confirm_mark_paid: "Mark R$ {amount} as paid?",
@@ -107,6 +110,8 @@ const translations = {
     set_add: "Adicionar",
     set_join_code: "Código de Admin",
     set_join_code_placeholder: "Digite o código",
+    set_pix_key: "Chave PIX",
+    set_pix_placeholder: "Sua chave PIX",
     // JS injected
     js_alert_wrong_join_code: "Código de acesso inválido. Você não pode fazer alterações.",
     js_alert_join_code_saved: "Código de acesso salvo.",
@@ -116,6 +121,7 @@ const translations = {
     js_alert_invalid_eff: "A eficiência deve ser maior que 0.",
     js_alert_trip_saved: "Viagem salva com sucesso!",
     js_alert_fuel_saved: "Preço padrão do combustível salvo!",
+    js_alert_pix_saved: "Chave PIX salva!",
     js_confirm_remove_user: "Tem certeza que deseja remover este participante?",
     js_confirm_delete_trip: "Tem certeza que deseja excluir esta viagem? Isso ajustará os saldos.",
     js_confirm_mark_paid: "Marcar R$ {amount} como pago?",
@@ -211,7 +217,8 @@ function toggleTheme() {
 
 let state = {
   settings: {
-    defaultFuelPrice: 5.50
+    defaultFuelPrice: 5.50,
+    pixKey: ''
   },
   carpoolers: [], 
   trips: []       
@@ -396,6 +403,8 @@ function initTabs() {
 
 function initSettings() {
   document.getElementById('settings-fuel-price').value = state.settings.defaultFuelPrice.toFixed(2);
+  const pixInput = document.getElementById('settings-pix-key');
+  if (pixInput) pixInput.value = state.settings.pixKey || '';
   
   const form = document.getElementById('form-add-carpooler');
   form.onsubmit = async (e) => {
@@ -435,6 +444,15 @@ function initSettings() {
       alert(t('js_alert_fuel_saved'));
     }
   };
+
+  const pixBtn = document.getElementById('btn-save-pix');
+  if (pixBtn) {
+    pixBtn.onclick = () => {
+      state.settings.pixKey = document.getElementById('settings-pix-key').value.trim();
+      saveLocalSettings();
+      alert(t('js_alert_pix_saved'));
+    };
+  }
 
   renderCarpoolersSettings();
 }
@@ -666,7 +684,9 @@ async function saveTrip() {
 
     // Reset Form
     document.getElementById('log-outbound-dist').value = '';
+    document.getElementById('log-outbound-eff').value = '';
     document.getElementById('log-return-dist').value = '';
+    document.getElementById('log-return-eff').value = '';
     document.getElementById('log-extra-expenses').value = '0.00';
     calculatePreview();
     
@@ -718,13 +738,17 @@ function updateDashboard() {
     weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Monday
     const dateStr = weekStart.toLocaleDateString();
     
-    const msg = t('js_wa_msg', {
+    let msg = t('js_wa_msg', {
       name: c.name,
       date: dateStr,
       amount: balance.toFixed(2),
       ida: carpoolerDebts[c.id].tripsIda,
       volta: carpoolerDebts[c.id].tripsVolta
     });
+    
+    if (state.settings.pixKey) {
+      msg += `\nPIX: ${state.settings.pixKey}`;
+    }
     const encodedMsg = encodeURIComponent(msg);
     const waLink = `https://wa.me/${c.phone}?text=${encodedMsg}`;
 
