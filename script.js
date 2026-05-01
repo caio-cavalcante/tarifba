@@ -217,14 +217,28 @@ let state = {
   trips: []       
 };
 
-const supabaseUrl = window.env?.SUPABASE_URL || '';
-const supabaseKey = window.env?.SUPABASE_ANON_KEY || '';
-const supabase = (supabaseUrl && supabaseKey && window.supabase) ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
+let supabaseClient = null;
+try {
+  const supabaseUrl = (window.env && window.env.SUPABASE_URL) || '';
+  const supabaseKey = (window.env && window.env.SUPABASE_ANON_KEY) || '';
+  if (supabaseUrl && supabaseUrl.startsWith('http') && supabaseKey && window.supabase) {
+    supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+  } else {
+    console.warn("Supabase credentials missing or invalid. Please update env.js.");
+  }
+} catch (e) {
+  console.error("Failed to initialize Supabase:", e);
+}
 
-let currentJoinCode = localStorage.getItem('carpool_join_code') || '';
+let currentJoinCode = '';
+try {
+  currentJoinCode = localStorage.getItem('carpool_join_code') || '';
+} catch (e) {
+  console.warn("localStorage not available");
+}
 
 function checkJoinCode() {
-  const expectedCode = window.env?.JOIN_CODE || '';
+  const expectedCode = (window.env && window.env.JOIN_CODE) || '';
   if (!expectedCode) return true;
   if (currentJoinCode !== expectedCode) {
     alert(t('js_alert_wrong_join_code'));
@@ -247,15 +261,15 @@ function loadLocalSettings() {
 }
 
 async function fetchData() {
-  if (!supabase) {
+  if (!supabaseClient) {
     console.error("Supabase client not initialized.");
     return;
   }
   try {
-    const { data: carpoolersData, error: cErr } = await supabase.from('carpoolers').select('*');
+    const { data: carpoolersData, error: cErr } = await supabaseClient.from('carpoolers').select('*');
     if (cErr) throw cErr;
     
-    const { data: tripsData, error: tErr } = await supabase.from('trips').select('*, trip_participants(*)');
+    const { data: tripsData, error: tErr } = await supabaseClient.from('trips').select('*, trip_participants(*)');
     if (tErr) throw tErr;
 
     state.carpoolers = carpoolersData.map(c => ({
@@ -301,14 +315,18 @@ async function fetchData() {
 // INITIALIZATION
 // ==========================================
 
-document.addEventListener('DOMContentLoaded', async () => {
-  loadLocalSettings();
+function initApp() {
+  console.log("App initialization started...");
+  try { loadLocalSettings(); console.log("loadLocalSettings done"); } catch (e) { console.error("Error in loadLocalSettings:", e); }
   
-  applyTheme();
-  applyTranslations();
+  try { applyTheme(); console.log("applyTheme done"); } catch (e) { console.error("Error in applyTheme:", e); }
+  try { applyTranslations(); console.log("applyTranslations done"); } catch (e) { console.error("Error in applyTranslations:", e); }
 
-  document.getElementById('btn-toggle-lang').addEventListener('click', toggleLanguage);
-  document.getElementById('btn-toggle-theme').addEventListener('click', toggleTheme);
+  const langBtn = document.getElementById('btn-toggle-lang');
+  if (langBtn) langBtn.addEventListener('click', toggleLanguage);
+  
+  const themeBtn = document.getElementById('btn-toggle-theme');
+  if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
 
   const jcInput = document.getElementById('settings-join-code');
   if (jcInput) jcInput.value = currentJoinCode;
@@ -322,16 +340,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
   }
 
-  initTabs();
-  initSettings();
+  try { initTabs(); console.log("initTabs done"); } catch (e) { console.error("Error in initTabs:", e); }
+  try { initSettings(); console.log("initSettings done"); } catch (e) { console.error("Error in initSettings:", e); }
   
-  await fetchData();
-  
-  initLogger();
-  updateDashboard();
-  updateHistory();
-  renderCarpoolersSettings();
-});
+  fetchData().then(() => {
+    console.log("fetchData done");
+    try { initLogger(); console.log("initLogger done"); } catch (e) { console.error("Error in initLogger:", e); }
+    try { updateDashboard(); console.log("updateDashboard done"); } catch (e) { console.error("Error in updateDashboard:", e); }
+    try { updateHistory(); console.log("updateHistory done"); } catch (e) { console.error("Error in updateHistory:", e); }
+    try { renderCarpoolersSettings(); console.log("renderCarpoolersSettings done"); } catch (e) { console.error("Error in renderCarpoolers:", e); }
+    console.log("App initialization complete!");
+  }).catch(e => {
+    console.error("Error during fetchData:", e);
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
 // ==========================================
 // TABS LOGIC
@@ -379,8 +407,8 @@ function initSettings() {
     phone = phone.replace(/\D/g, '');
 
     if (name && phone) {
-      if (supabase) {
-        const { data, error } = await supabase.from('carpoolers').insert([{ name, phone, total_paid: 0 }]).select();
+      if (supabaseClient) {
+        const { data, error } = await supabaseClient.from('carpoolers').insert([{ name, phone, total_paid: 0 }]).select();
         if (!error && data && data.length > 0) {
           state.carpoolers.push({
             id: data[0].id,
@@ -438,8 +466,8 @@ function renderCarpoolersSettings() {
 window.deleteCarpooler = async function(id) {
   if (!checkJoinCode()) return;
   if(confirm(t('js_confirm_remove_user'))) {
-    if (supabase) {
-      const { error } = await supabase.from('carpoolers').delete().eq('id', id);
+    if (supabaseClient) {
+      const { error } = await supabaseClient.from('carpoolers').delete().eq('id', id);
       if (!error) {
         state.carpoolers = state.carpoolers.filter(c => c.id !== id);
         renderCarpoolersSettings();
@@ -594,7 +622,7 @@ async function saveTrip() {
     return;
   }
 
-  if (supabase) {
+  if (supabaseClient) {
     const tripToInsert = {
       date: new Date().toISOString(),
       total_cost: data.totalCost,
@@ -606,7 +634,7 @@ async function saveTrip() {
       return_count: data.retIds.length
     };
 
-    const { data: tripData, error: tripErr } = await supabase.from('trips').insert([tripToInsert]).select();
+    const { data: tripData, error: tripErr } = await supabaseClient.from('trips').insert([tripToInsert]).select();
     if (tripErr) {
       console.error(tripErr);
       return;
@@ -629,7 +657,7 @@ async function saveTrip() {
     }
 
     if (participants.length > 0) {
-      const { error: partErr } = await supabase.from('trip_participants').insert(participants);
+      const { error: partErr } = await supabaseClient.from('trip_participants').insert(participants);
       if (partErr) console.error(partErr);
     }
 
@@ -735,9 +763,9 @@ window.markPaid = async function(userId, amount) {
   if (!checkJoinCode()) return;
   if(confirm(t('js_confirm_mark_paid', {amount: amount.toFixed(2)}))) {
     const user = state.carpoolers.find(c => c.id === userId);
-    if (user && supabase) {
+    if (user && supabaseClient) {
       const newTotal = (user.totalPaid || 0) + amount;
-      const { error } = await supabase.from('carpoolers').update({ total_paid: newTotal }).eq('id', userId);
+      const { error } = await supabaseClient.from('carpoolers').update({ total_paid: newTotal }).eq('id', userId);
       if (!error) {
         user.totalPaid = newTotal;
         updateDashboard();
@@ -787,8 +815,8 @@ function updateHistory() {
 window.deleteTrip = async function(tripId) {
   if (!checkJoinCode()) return;
   if (confirm(t('js_confirm_delete_trip'))) {
-    if (supabase) {
-      const { error } = await supabase.from('trips').delete().eq('id', tripId);
+    if (supabaseClient) {
+      const { error } = await supabaseClient.from('trips').delete().eq('id', tripId);
       if (!error) {
         state.trips = state.trips.filter(t => t.id !== tripId);
         updateHistory();
