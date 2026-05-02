@@ -1,7 +1,7 @@
 const fs = require('fs');
 
-// Helper to remove accidental quotes if the user pasted them in Vercel UI
-const cleanVar = (val) => (val || '').replace(/^['"]|['"]$/g, '').trim();
+// Helper to remove accidental quotes and trailing commas if the user pasted them in Vercel UI
+const cleanVar = (val) => (val || '').replace(/^['"]|['",]+$/g, '').trim();
 
 const supabaseUrl = cleanVar(process.env.SUPABASE_URL);
 const supabaseKey = cleanVar(process.env.SUPABASE_ANON_KEY);
