@@ -92,7 +92,7 @@ const translations = {
     dash_total_outstanding: "Saldo Devedor Total",
     dash_participant_balances: "Saldos dos Participantes",
     table_name: "Nome",
-    table_trips: "Viagens (Ida/Volta)",
+    table_trips: "Viagens",
     table_unpaid_balance: "Saldo Devedor",
     table_actions: "Ações",
     table_date: "Data",
