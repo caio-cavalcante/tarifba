@@ -44,6 +44,12 @@ const translations = {
     set_join_code_placeholder: "Enter code",
     set_pix_key: "PIX Key",
     set_pix_placeholder: "Your PIX key",
+    modal_edit_carpooler: "Edit Carpooler",
+    modal_edit_trip: "Edit Trip",
+    btn_cancel: "Cancel",
+    btn_save_changes: "Save Changes",
+    loading_message: "Loading...",
+    js_alert_error: "An error occurred: {msg}",
     // JS injected
     js_alert_wrong_join_code: "Invalid Join Code. You cannot make edits.",
     js_alert_join_code_saved: "Join code saved.",
@@ -112,6 +118,12 @@ const translations = {
     set_join_code_placeholder: "Digite o código",
     set_pix_key: "Chave PIX",
     set_pix_placeholder: "Sua chave PIX",
+    modal_edit_carpooler: "Editar Participante",
+    modal_edit_trip: "Editar Viagem",
+    btn_cancel: "Cancelar",
+    btn_save_changes: "Salvar Alterações",
+    loading_message: "Carregando...",
+    js_alert_error: "Ocorreu um erro: {msg}",
     // JS injected
     js_alert_wrong_join_code: "Código de acesso inválido. Você não pode fazer alterações.",
     js_alert_join_code_saved: "Código de acesso salvo.",
@@ -209,6 +221,30 @@ function toggleTheme() {
   localStorage.setItem('carpool_theme', currentTheme);
   applyTheme();
 }
+
+function showLoading() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) overlay.classList.remove('hidden');
+}
+
+function hideLoading() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) overlay.classList.add('hidden');
+}
+
+window.closeModal = function(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.classList.add('hidden');
+}
+
+window.openModal = function(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
 
 
 // ==========================================
@@ -472,9 +508,14 @@ function renderCarpoolersSettings() {
       <td>${c.name}</td>
       <td>${c.phone}</td>
       <td>
-        <button class="text-danger hover:text-red-400" onclick="deleteCarpooler('${c.id}')">
-          <i class="fa-solid fa-trash"></i>
-        </button>
+        <div class="flex gap-3">
+          <button class="text-primary hover:text-blue-400" onclick="openEditCarpoolerModal('${c.id}')">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button class="text-danger hover:text-red-400" onclick="deleteCarpooler('${c.id}')">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
@@ -485,15 +526,67 @@ window.deleteCarpooler = async function(id) {
   if (!checkJoinCode()) return;
   if(confirm(t('js_confirm_remove_user'))) {
     if (supabaseClient) {
-      const { error } = await supabaseClient.from('carpoolers').delete().eq('id', id);
-      if (!error) {
-        state.carpoolers = state.carpoolers.filter(c => c.id !== id);
+      showLoading();
+      try {
+        const { error } = await supabaseClient.from('carpoolers').delete().eq('id', id);
+        if (error) throw error;
+        await fetchData();
         renderCarpoolersSettings();
-      } else {
-        console.error(error);
+        updateDashboard();
+        updateHistory();
+        initLogger();
+      } catch (err) {
+        console.error(err);
+        alert(t('js_alert_error', {msg: err.message || err.details || "Unknown error"}));
+      } finally {
+        hideLoading();
       }
     }
   }
+}
+
+window.openEditCarpoolerModal = function(id) {
+  if (!checkJoinCode()) return;
+  const user = state.carpoolers.find(c => c.id === id);
+  if (!user) return;
+  
+  document.getElementById('edit-carpooler-id').value = user.id;
+  document.getElementById('edit-carpooler-name').value = user.name;
+  document.getElementById('edit-carpooler-phone').value = user.phone;
+  
+  openModal('modal-edit-carpooler');
+}
+
+if (document.getElementById('form-edit-carpooler')) {
+  document.getElementById('form-edit-carpooler').onsubmit = async (e) => {
+    e.preventDefault();
+    if (!checkJoinCode()) return;
+    
+    const id = document.getElementById('edit-carpooler-id').value;
+    const name = document.getElementById('edit-carpooler-name').value.trim();
+    let phone = document.getElementById('edit-carpooler-phone').value.trim();
+    phone = phone.replace(/\D/g, '');
+
+    if (id && name && phone && supabaseClient) {
+      showLoading();
+      try {
+        const { error } = await supabaseClient.from('carpoolers').update({ name, phone }).eq('id', id);
+        if (error) throw error;
+        
+        await fetchData();
+        renderCarpoolersSettings();
+        updateDashboard();
+        updateHistory();
+        initLogger();
+        closeModal('modal-edit-carpooler');
+      } catch (err) {
+        console.error(err);
+        alert(t('js_alert_error', {msg: err.message || err.details || "Unknown error"}));
+      } finally {
+        hideLoading();
+      }
+    }
+  };
 }
 
 // ==========================================
@@ -827,9 +920,14 @@ function updateHistory() {
       <td class="text-xs text-gray-400">${tobj.outboundInfo.dist}km (${tobj.outboundInfo.eff}km/L) <br> <i class="fa-solid fa-users"></i> ${tobj.outboundInfo.count} ${t('js_pax')}</td>
       <td class="text-xs text-gray-400">${tobj.returnInfo.dist}km (${tobj.returnInfo.eff}km/L) <br> <i class="fa-solid fa-users"></i> ${tobj.returnInfo.count} ${t('js_pax')}</td>
       <td>
-        <button class="text-danger hover:text-red-400" onclick="deleteTrip('${tobj.id}')">
-          <i class="fa-solid fa-trash"></i>
-        </button>
+        <div class="flex gap-3">
+          <button class="text-primary hover:text-blue-400" onclick="openEditTripModal('${tobj.id}')">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button class="text-danger hover:text-red-400" onclick="deleteTrip('${tobj.id}')">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
@@ -840,14 +938,185 @@ window.deleteTrip = async function(tripId) {
   if (!checkJoinCode()) return;
   if (confirm(t('js_confirm_delete_trip'))) {
     if (supabaseClient) {
-      const { error } = await supabaseClient.from('trips').delete().eq('id', tripId);
-      if (!error) {
-        state.trips = state.trips.filter(t => t.id !== tripId);
+      showLoading();
+      try {
+        const { error } = await supabaseClient.from('trips').delete().eq('id', tripId);
+        if (error) throw error;
+        await fetchData();
         updateHistory();
         updateDashboard();
-      } else {
-        console.error(error);
+      } catch (err) {
+        console.error(err);
+        alert(t('js_alert_error', {msg: err.message || err.details || "Unknown error"}));
+      } finally {
+        hideLoading();
       }
     }
   }
+}
+
+window.openEditTripModal = function(id) {
+  if (!checkJoinCode()) return;
+  const trip = state.trips.find(t => t.id === id);
+  if (!trip) return;
+  
+  const d = new Date(trip.date);
+  const offset = d.getTimezoneOffset() * 60000;
+  const localISOTime = (new Date(d - offset)).toISOString().slice(0, 16);
+
+  document.getElementById('edit-trip-id').value = trip.id;
+  document.getElementById('edit-trip-date').value = localISOTime;
+  
+  let extra = 0;
+  const firstUserId = Object.keys(trip.individualCosts)[0];
+  if (firstUserId && trip.individualCosts[firstUserId].extra) {
+    const participantCount = Object.keys(trip.individualCosts).length;
+    extra = trip.individualCosts[firstUserId].extra * (participantCount + 1);
+  }
+
+  document.getElementById('edit-trip-extra').value = extra.toFixed(2);
+  document.getElementById('edit-outbound-dist').value = trip.outboundInfo.dist;
+  document.getElementById('edit-outbound-eff').value = trip.outboundInfo.eff;
+  document.getElementById('edit-return-dist').value = trip.returnInfo.dist;
+  document.getElementById('edit-return-eff').value = trip.returnInfo.eff;
+
+  let oldLiters = 0;
+  if (trip.outboundInfo.eff > 0) oldLiters += (trip.outboundInfo.dist / trip.outboundInfo.eff);
+  if (trip.returnInfo.eff > 0) oldLiters += (trip.returnInfo.dist / trip.returnInfo.eff);
+  
+  let historicalFuelPrice = state.settings.defaultFuelPrice;
+  if (oldLiters > 0) {
+    historicalFuelPrice = (trip.totalCost - extra) / oldLiters;
+  }
+  
+  document.getElementById('form-edit-trip').dataset.fuelPrice = historicalFuelPrice.toString();
+
+  const outContainer = document.getElementById('edit-outbound-participants');
+  outContainer.innerHTML = '';
+  state.carpoolers.forEach(c => {
+    const isChecked = trip.outIds.includes(c.id);
+    const label = document.createElement('label');
+    label.className = 'checkbox-container';
+    label.innerHTML = `
+      ${c.name}
+      <input type="checkbox" value="${c.id}" ${isChecked ? 'checked' : ''}>
+      <span class="checkmark"></span>
+    `;
+    outContainer.appendChild(label);
+  });
+
+  const retContainer = document.getElementById('edit-return-participants');
+  retContainer.innerHTML = '';
+  state.carpoolers.forEach(c => {
+    const isChecked = trip.retIds.includes(c.id);
+    const label = document.createElement('label');
+    label.className = 'checkbox-container';
+    label.innerHTML = `
+      ${c.name}
+      <input type="checkbox" value="${c.id}" ${isChecked ? 'checked' : ''}>
+      <span class="checkmark"></span>
+    `;
+    retContainer.appendChild(label);
+  });
+
+  openModal('modal-edit-trip');
+}
+
+if (document.getElementById('form-edit-trip')) {
+  document.getElementById('form-edit-trip').onsubmit = async (e) => {
+    e.preventDefault();
+    if (!checkJoinCode()) return;
+    
+    const id = document.getElementById('edit-trip-id').value;
+    const dateStr = document.getElementById('edit-trip-date').value;
+    const extra = parseFloat(document.getElementById('edit-trip-extra').value) || 0;
+    
+    const outDist = parseFloat(document.getElementById('edit-outbound-dist').value) || 0;
+    const outEff = parseFloat(document.getElementById('edit-outbound-eff').value) || 0;
+    const retDist = parseFloat(document.getElementById('edit-return-dist').value) || 0;
+    const retEff = parseFloat(document.getElementById('edit-return-eff').value) || 0;
+
+    const fuelPrice = parseFloat(document.getElementById('form-edit-trip').dataset.fuelPrice) || state.settings.defaultFuelPrice;
+
+    if ((outDist > 0 && outEff <= 0) || (retDist > 0 && retEff <= 0)) {
+      alert(t('js_alert_invalid_eff'));
+      return;
+    }
+
+    const outIds = Array.from(document.querySelectorAll('#edit-outbound-participants input:checked')).map(el => el.value);
+    const retIds = Array.from(document.querySelectorAll('#edit-return-participants input:checked')).map(el => el.value);
+
+    const outCost = (outDist > 0 && outEff > 0) ? (outDist / outEff) * fuelPrice : 0;
+    const retCost = (retDist > 0 && retEff > 0) ? (retDist / retEff) * fuelPrice : 0;
+    const totalCost = outCost + retCost + extra;
+
+    if (totalCost <= 0) {
+      alert(t('js_alert_zero_cost'));
+      return;
+    }
+
+    const outPerPerson = outCost / (outIds.length + 1);
+    const retPerPerson = retCost / (retIds.length + 1);
+    const uniqueIds = new Set([...outIds, ...retIds]);
+    const extraPerPerson = extra / (uniqueIds.size + 1);
+
+    const participants = [];
+    uniqueIds.forEach(userId => {
+      const p_ida = outIds.includes(userId);
+      const p_volta = retIds.includes(userId);
+      
+      const p_cost_ida = p_ida ? outPerPerson : 0;
+      const p_cost_volta = p_volta ? retPerPerson : 0;
+      const p_cost_extra = extraPerPerson;
+      const p_cost_total = p_cost_ida + p_cost_volta + p_cost_extra;
+
+      participants.push({
+        trip_id: id,
+        carpooler_id: userId,
+        cost_total: p_cost_total,
+        cost_ida: p_cost_ida,
+        cost_volta: p_cost_volta,
+        cost_extra: p_cost_extra,
+        present_ida: p_ida,
+        present_volta: p_volta
+      });
+    });
+
+    if (supabaseClient) {
+      showLoading();
+      try {
+        const tripUpdate = {
+          date: new Date(dateStr).toISOString(),
+          total_cost: totalCost,
+          outbound_dist: outDist,
+          outbound_eff: outEff,
+          outbound_count: outIds.length,
+          return_dist: retDist,
+          return_eff: retEff,
+          return_count: retIds.length
+        };
+
+        const { error: tripErr } = await supabaseClient.from('trips').update(tripUpdate).eq('id', id);
+        if (tripErr) throw tripErr;
+
+        const { error: delErr } = await supabaseClient.from('trip_participants').delete().eq('trip_id', id);
+        if (delErr) throw delErr;
+
+        if (participants.length > 0) {
+          const { error: partErr } = await supabaseClient.from('trip_participants').insert(participants);
+          if (partErr) throw partErr;
+        }
+
+        await fetchData();
+        updateDashboard();
+        updateHistory();
+        closeModal('modal-edit-trip');
+      } catch (err) {
+        console.error(err);
+        alert(t('js_alert_error', {msg: err.message || err.details || "Unknown error"}));
+      } finally {
+        hideLoading();
+      }
+    }
+  };
 }
