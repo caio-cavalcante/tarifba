@@ -295,6 +295,112 @@
       EN
     </button>
   </div>
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="fixed inset-0 bg-black/60 z-[100] hidden items-center justify-center backdrop-blur-sm">
+    <div class="card bg-surface p-6 rounded-xl flex flex-col items-center gap-4">
+      <i class="fa-solid fa-spinner fa-spin text-4xl text-primary"></i>
+      <p class="text-lg font-bold" data-i18n="loading_message">Loading...</p>
+    </div>
+  </div>
+
+  <!-- Edit Carpooler Modal -->
+  <div id="modal-edit-carpooler" class="fixed inset-0 bg-black/60 z-[60] hidden items-center justify-center backdrop-blur-sm p-4">
+    <div class="card bg-surface w-full max-w-md p-6 rounded-xl shadow-2xl">
+      <h2 class="text-xl font-bold mb-4 border-b border-surface pb-2" data-i18n="modal_edit_carpooler">Edit Carpooler</h2>
+      <form id="form-edit-carpooler" class="space-y-4">
+        <input type="hidden" id="edit-carpooler-id">
+        <div>
+          <label class="block text-sm mb-1" data-i18n="table_name">Name</label>
+          <input type="text" id="edit-carpooler-name" class="input-field" required>
+        </div>
+        <div>
+          <label class="block text-sm mb-1" data-i18n="table_phone">Phone (WhatsApp)</label>
+          <input type="tel" id="edit-carpooler-phone" class="input-field" required>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" class="btn-secondary" onclick="closeModal('modal-edit-carpooler')" data-i18n="btn_cancel">Cancel</button>
+          <button type="submit" class="btn-primary" data-i18n="btn_save_changes">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Trip Modal -->
+  <div id="modal-edit-trip" class="fixed inset-0 bg-black/60 z-[60] hidden items-start justify-center backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="card bg-surface w-full max-w-2xl p-6 rounded-xl shadow-2xl my-8 relative">
+      <h2 class="text-xl font-bold mb-4 border-b border-surface pb-2" data-i18n="modal_edit_trip">Edit Trip</h2>
+      <form id="form-edit-trip" class="space-y-6">
+        <input type="hidden" id="edit-trip-id">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm mb-1" data-i18n="table_date">Date</label>
+            <input type="datetime-local" id="edit-trip-date" class="input-field" required>
+          </div>
+          <div>
+            <label class="block text-sm mb-1" data-i18n="log_extra_expenses">Additional Expenses</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">R$</span>
+              <input type="number" id="edit-trip-extra" class="input-field pl-10" step="0.01" min="0" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Outbound (Ida) -->
+          <div class="space-y-4 border-t-4 border-t-primary pt-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <i class="fa-solid fa-arrow-right-from-bracket text-primary"></i> <span data-i18n="log_outbound">Outbound (Ida)</span>
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm mb-1" data-i18n="log_distance">Distance (km)</label>
+                <input type="number" id="edit-outbound-dist" class="input-field" step="0.1" min="0" required>
+              </div>
+              <div>
+                <label class="block text-sm mb-1" data-i18n="log_efficiency">Efficiency (km/L)</label>
+                <input type="number" id="edit-outbound-eff" class="input-field" step="0.1" min="0.1" required>
+              </div>
+            </div>
+            <div>
+              <h4 class="text-sm font-semibold mb-2" data-i18n="log_participants">Participants Present:</h4>
+              <div id="edit-outbound-participants" class="space-y-1 max-h-40 overflow-y-auto pr-2">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Return (Volta) -->
+          <div class="space-y-4 border-t-4 border-t-accent pt-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <i class="fa-solid fa-arrow-right-to-bracket text-accent"></i> <span data-i18n="log_return">Return (Volta)</span>
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm mb-1" data-i18n="log_distance">Distance (km)</label>
+                <input type="number" id="edit-return-dist" class="input-field" step="0.1" min="0" required>
+              </div>
+              <div>
+                <label class="block text-sm mb-1" data-i18n="log_efficiency">Efficiency (km/L)</label>
+                <input type="number" id="edit-return-eff" class="input-field" step="0.1" min="0.1" required>
+              </div>
+            </div>
+            <div>
+              <h4 class="text-sm font-semibold mb-2" data-i18n="log_participants">Participants Present:</h4>
+              <div id="edit-return-participants" class="space-y-1 max-h-40 overflow-y-auto pr-2">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-surface">
+          <button type="button" class="btn-secondary" onclick="closeModal('modal-edit-trip')" data-i18n="btn_cancel">Cancel</button>
+          <button type="submit" class="btn-primary" data-i18n="btn_save_changes">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script src="env.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
