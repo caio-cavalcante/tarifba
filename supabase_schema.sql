@@ -55,3 +55,18 @@ CREATE POLICY "Allow anonymous SELECT on trip_participants" ON trip_participants
 CREATE POLICY "Allow anonymous INSERT on trip_participants" ON trip_participants FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "Allow anonymous UPDATE on trip_participants" ON trip_participants FOR UPDATE TO anon USING (true);
 CREATE POLICY "Allow anonymous DELETE on trip_participants" ON trip_participants FOR DELETE TO anon USING (true);
+
+-- Ensure Cascade Delete is set up for trips (migration safety)
+ALTER TABLE trip_participants
+DROP CONSTRAINT IF EXISTS trip_participants_trip_id_fkey,
+ADD CONSTRAINT trip_participants_trip_id_fkey
+   FOREIGN KEY (trip_id)
+   REFERENCES trips(id)
+   ON DELETE CASCADE;
+
+ALTER TABLE trip_participants
+DROP CONSTRAINT IF EXISTS trip_participants_carpooler_id_fkey,
+ADD CONSTRAINT trip_participants_carpooler_id_fkey
+   FOREIGN KEY (carpooler_id)
+   REFERENCES carpoolers(id)
+   ON DELETE CASCADE;
