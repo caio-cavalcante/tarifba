@@ -402,6 +402,27 @@
     </div>
   </div>
 
+  <!-- Register Payment Modal -->
+  <div id="modal-register-payment" class="fixed inset-0 bg-black/60 z-[60] hidden items-center justify-center backdrop-blur-sm p-4">
+    <div class="card bg-surface w-full max-w-md p-6 rounded-xl shadow-2xl">
+      <h2 class="text-xl font-bold mb-4 border-b border-surface pb-2" data-i18n="modal_register_payment">Register Payment</h2>
+      <form id="form-register-payment" class="space-y-4">
+        <input type="hidden" id="payment-carpooler-id">
+        <div>
+          <label class="block text-sm mb-1" data-i18n="js_payment_amount">Payment Amount</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">R$</span>
+            <input type="number" id="payment-amount" class="input-field pl-10" step="0.01" min="0.01" required>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" class="btn-secondary" onclick="closeModal('modal-register-payment')" data-i18n="btn_cancel">Cancel</button>
+          <button type="submit" class="btn-primary" data-i18n="btn_save_changes">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="env.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
