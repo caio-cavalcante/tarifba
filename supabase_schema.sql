@@ -70,3 +70,18 @@ ADD CONSTRAINT trip_participants_carpooler_id_fkey
    FOREIGN KEY (carpooler_id)
    REFERENCES carpoolers(id)
    ON DELETE CASCADE;
+
+-- Create the payments ledger table
+CREATE TABLE payments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  carpooler_id UUID REFERENCES carpoolers(id) ON DELETE CASCADE,
+  amount NUMERIC(10, 2) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS (Even if you haven't set up Auth yet, it's good practice)
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+
+-- Allow public access for now (since we skipped Step 5: Auth)
+CREATE POLICY "Allow public read/write on payments" 
+ON payments FOR ALL USING (true) WITH CHECK (true);
