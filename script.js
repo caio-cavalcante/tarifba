@@ -4,7 +4,7 @@
 
 const translations = {
   en: {
-    app_title: "Carpool Cost Manager",
+    app_title: "TARIFBA",
     tab_logger: "Logger",
     tab_dashboard: "Dashboard",
     tab_history: "History",
@@ -75,10 +75,13 @@ const translations = {
     js_pax: "Pax",
     js_ida: "Outbound",
     js_volta: "Return",
-    js_wa_msg: "Fala {name}, aqui é o resumo das suas caronas na semana de {date}: Total R${amount}. (Ida: {ida} viagens, Volta: {volta} viagens). Valeu!"
+    js_wa_msg: "Hey {name}, your current carpool owing balance is R${amount}. Cheers!",
+    modal_register_payment: "Register Payment",
+    js_payment_amount: "Payment Amount",
+    js_btn_register_payment: "Register Payment"
   },
   pt: {
-    app_title: "Gerenciador de Caronas",
+    app_title: "TARIFBA",
     tab_logger: "Registrar",
     tab_dashboard: "Painel",
     tab_history: "Histórico",
@@ -149,7 +152,10 @@ const translations = {
     js_pax: "Pax",
     js_ida: "Ida",
     js_volta: "Volta",
-    js_wa_msg: "Fala {name}, aqui é o resumo das suas caronas na semana de {date}: Total R${amount}. (Ida: {ida} viagens, Volta: {volta} viagens). Valeu!"
+    js_wa_msg: "Fala {name}, seu saldo devedor atual das caronas é R${amount}. Valeu!",
+    modal_register_payment: "Registrar Pagamento",
+    js_payment_amount: "Valor do Pagamento",
+    js_btn_register_payment: "Registrar Pagamento"
   }
 };
 
@@ -315,12 +321,19 @@ async function fetchData() {
     const { data: tripsData, error: tErr } = await supabaseClient.from('trips').select('*, trip_participants(*)');
     if (tErr) throw tErr;
 
-    state.carpoolers = carpoolersData.map(c => ({
-      id: c.id,
-      name: c.name,
-      phone: c.phone,
-      totalPaid: parseFloat(c.total_paid) || 0
-    }));
+    const { data: paymentsData, error: pErr } = await supabaseClient.from('payments').select('*');
+    if (pErr) throw pErr;
+
+    state.carpoolers = carpoolersData.map(c => {
+      const userPayments = paymentsData.filter(p => p.carpooler_id === c.id);
+      const totalPaid = userPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      return {
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        totalPaid: totalPaid
+      };
+    });
 
     state.trips = tripsData.map(t => {
       const outIds = t.trip_participants.filter(tp => tp.present_ida).map(tp => tp.carpooler_id);
@@ -826,17 +839,9 @@ function updateDashboard() {
 
     const tr = document.createElement('tr');
     
-    // WhatsApp Msg
-    const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Monday
-    const dateStr = weekStart.toLocaleDateString();
-    
     let msg = t('js_wa_msg', {
       name: c.name,
-      date: dateStr,
-      amount: balance.toFixed(2),
-      ida: carpoolerDebts[c.id].tripsIda,
-      volta: carpoolerDebts[c.id].tripsVolta
+      amount: balance.toFixed(2)
     });
     
     if (state.settings.pixKey) {
@@ -854,8 +859,8 @@ function updateDashboard() {
       <td>
         <div class="flex gap-2">
           ${balance > 0 ? `
-            <button class="btn-success text-xs py-1 px-2" onclick="markPaid('${c.id}', ${balance})">
-              <i class="fa-solid fa-check"></i> ${t('js_btn_paid')}
+            <button class="btn-success text-xs py-1 px-2" onclick="openPaymentModal('${c.id}', ${balance})">
+              <i class="fa-solid fa-plus"></i> ${t('js_btn_register_payment')}
             </button>
             <a href="${waLink}" target="_blank" class="btn-primary bg-green-600 hover:bg-green-700 text-xs py-1 px-2">
               <i class="fa-brands fa-whatsapp"></i> ${t('js_btn_send')}
@@ -876,21 +881,38 @@ function updateDashboard() {
   document.getElementById('dash-total-outstanding').innerText = totalOutstanding.toFixed(2);
 }
 
-window.markPaid = async function(userId, amount) {
+window.openPaymentModal = function(userId, balance) {
   if (!checkJoinCode()) return;
-  if(confirm(t('js_confirm_mark_paid', {amount: amount.toFixed(2)}))) {
-    const user = state.carpoolers.find(c => c.id === userId);
-    if (user && supabaseClient) {
-      const newTotal = (user.totalPaid || 0) + amount;
-      const { error } = await supabaseClient.from('carpoolers').update({ total_paid: newTotal }).eq('id', userId);
-      if (!error) {
-        user.totalPaid = newTotal;
+  document.getElementById('payment-carpooler-id').value = userId;
+  document.getElementById('payment-amount').value = balance.toFixed(2);
+  openModal('modal-register-payment');
+}
+
+if (document.getElementById('form-register-payment')) {
+  document.getElementById('form-register-payment').onsubmit = async (e) => {
+    e.preventDefault();
+    if (!checkJoinCode()) return;
+    
+    const userId = document.getElementById('payment-carpooler-id').value;
+    const amount = parseFloat(document.getElementById('payment-amount').value);
+
+    if (userId && amount > 0 && supabaseClient) {
+      showLoading();
+      try {
+        const { error } = await supabaseClient.from('payments').insert([{ carpooler_id: userId, amount }]);
+        if (error) throw error;
+        
+        await fetchData();
         updateDashboard();
-      } else {
-        console.error(error);
+        closeModal('modal-register-payment');
+      } catch (err) {
+        console.error(err);
+        alert(t('js_alert_error', {msg: err.message || err.details || "Unknown error"}));
+      } finally {
+        hideLoading();
       }
     }
-  }
+  };
 }
 
 // ==========================================
