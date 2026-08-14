@@ -163,9 +163,14 @@
 
       <!-- Per Person Breakdown -->
       <div class="card">
-        <h2 class="text-lg font-bold flex items-center gap-2 border-b border-surface pb-3 mb-4">
-          <i class="fa-solid fa-users text-primary"></i> <span data-i18n="dash_participant_balances">Participant Balances</span>
-        </h2>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-surface pb-3 mb-4">
+          <h2 class="text-lg font-bold flex items-center gap-2">
+            <i class="fa-solid fa-users text-primary"></i> <span data-i18n="dash_participant_balances">Participant Balances</span>
+          </h2>
+          <button id="btn-view-payment-history" class="btn-secondary text-sm py-1.5 px-3 flex items-center gap-2" onclick="openPaymentHistoryModal()">
+            <i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="dash_view_payments">Payment History</span>
+          </button>
+        </div>
         <div class="overflow-x-auto">
           <table class="data-table">
             <thead>
@@ -420,6 +425,36 @@
           <button type="submit" class="btn-primary" data-i18n="btn_save_changes">Save Changes</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Payment History Modal -->
+  <div id="modal-payment-history" class="fixed inset-0 bg-black/60 z-[60] hidden items-center justify-center backdrop-blur-sm p-4">
+    <div class="card bg-surface w-full max-w-2xl p-6 rounded-xl shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-surface pb-3 mb-4">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-primary"></i> <span data-i18n="modal_payment_history">Payment History</span>
+        </h2>
+        <button type="button" class="text-gray-400 hover:text-gray-200 text-xl font-bold p-1 leading-none" onclick="closeModal('modal-payment-history')">&times;</button>
+      </div>
+      <div class="overflow-y-auto flex-1 pr-1">
+        <table class="data-table text-sm">
+          <thead>
+            <tr>
+              <th data-i18n="table_date">Date</th>
+              <th data-i18n="table_name">Name</th>
+              <th data-i18n="table_amount">Amount</th>
+              <th data-i18n="table_actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="payment-history-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+      <div class="flex justify-end pt-4 mt-4 border-t border-surface">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-payment-history')" data-i18n="btn_cancel">Cancel</button>
+      </div>
     </div>
   </div>
 

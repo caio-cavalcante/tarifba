@@ -78,7 +78,13 @@ const translations = {
     js_wa_msg: "Hey {name}, your current carpool owing balance is R${amount}. Cheers!",
     modal_register_payment: "Register Payment",
     js_payment_amount: "Payment Amount",
-    js_btn_register_payment: "Register Payment"
+    js_btn_register_payment: "Register Payment",
+    dash_view_payments: "Payment History",
+    modal_payment_history: "Payment History",
+    table_amount: "Amount",
+    js_empty_payments: "No payments registered yet.",
+    js_confirm_delete_payment: "Are you sure you want to delete this payment record? This will adjust balances.",
+    js_unknown_user: "Unknown"
   },
   pt: {
     app_title: "TARIFBA",
@@ -155,7 +161,13 @@ const translations = {
     js_wa_msg: "Fala {name}, seu saldo devedor atual das caronas é R${amount}. Valeu!",
     modal_register_payment: "Registrar Pagamento",
     js_payment_amount: "Valor do Pagamento",
-    js_btn_register_payment: "Registrar Pagamento"
+    js_btn_register_payment: "Registrar Pagamento",
+    dash_view_payments: "Histórico de Pagamentos",
+    modal_payment_history: "Histórico de Pagamentos",
+    table_amount: "Valor",
+    js_empty_payments: "Nenhum pagamento registrado ainda.",
+    js_confirm_delete_payment: "Tem certeza que deseja excluir este registro de pagamento? Isso ajustará os saldos.",
+    js_unknown_user: "Desconhecido"
   }
 };
 
@@ -208,6 +220,10 @@ function toggleLanguage() {
   initLogger();
   updateDashboard();
   updateHistory();
+  const paymentModal = document.getElementById('modal-payment-history');
+  if (paymentModal && !paymentModal.classList.contains('hidden')) {
+    renderPaymentHistory();
+  }
 }
 
 function applyTheme() {
@@ -333,7 +349,7 @@ async function fetchData() {
         phone: c.phone,
         totalPaid: totalPaid
       };
-    });
+    }).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
     state.trips = tripsData.map(t => {
       const outIds = t.trip_participants.filter(tp => tp.present_ida).map(tp => tp.carpooler_id);
@@ -474,6 +490,7 @@ function initSettings() {
             phone,
             totalPaid: 0
           });
+          state.carpoolers.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
           document.getElementById('new-carpooler-name').value = '';
           document.getElementById('new-carpooler-phone').value = '';
           renderCarpoolersSettings();
@@ -515,7 +532,8 @@ function renderCarpoolersSettings() {
     return;
   }
 
-  state.carpoolers.forEach(c => {
+  const sortedCarpoolers = [...state.carpoolers].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  sortedCarpoolers.forEach(c => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${c.name}</td>
@@ -636,7 +654,8 @@ function renderChecklist(containerId) {
     return;
   }
 
-  state.carpoolers.forEach(c => {
+  const sortedCarpoolers = [...state.carpoolers].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  sortedCarpoolers.forEach(c => {
     const label = document.createElement('label');
     label.className = 'checkbox-container';
     label.innerHTML = `
@@ -680,7 +699,8 @@ function calculatePreview() {
   let previewSplitsData = {};
 
   if (uniqueIds.size > 0 || totalCost > 0) {
-    state.carpoolers.forEach(c => {
+    const sortedCarpoolers = [...state.carpoolers].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    sortedCarpoolers.forEach(c => {
       let cost = 0;
       let breakdown = [];
       if (outIds.includes(c.id)) {
@@ -824,24 +844,28 @@ function updateDashboard() {
     t.retIds.forEach(id => { if(carpoolerDebts[id]) carpoolerDebts[id].tripsVolta++; });
   });
 
-  document.getElementById('dash-total-expenses').innerText = totalExpenses.toFixed(2);
+  const normalizedExpenses = Object.is(Math.round(totalExpenses * 100) / 100, -0) ? 0 : Math.round(totalExpenses * 100) / 100;
+  document.getElementById('dash-total-expenses').innerText = normalizedExpenses.toFixed(2);
 
   let totalOutstanding = 0;
   const tbody = document.getElementById('dash-balances-body');
   tbody.innerHTML = '';
 
-  state.carpoolers.forEach(c => {
-    const debt = carpoolerDebts[c.id].totalDebt;
-    const paid = c.totalPaid || 0;
-    const balance = debt - paid;
+  const sortedCarpoolers = [...state.carpoolers].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-    if (balance > 0) totalOutstanding += balance;
+  sortedCarpoolers.forEach(c => {
+    const totalDebt = carpoolerDebts[c.id].totalDebt;
+    const totalPaid = c.totalPaid || 0;
+    const balance = Math.round((totalDebt - totalPaid) * 100) / 100;
+    const displayBalance = Object.is(balance, -0) ? 0 : balance;
+
+    if (displayBalance > 0) totalOutstanding += displayBalance;
 
     const tr = document.createElement('tr');
     
     let msg = t('js_wa_msg', {
       name: c.name,
-      amount: balance.toFixed(2)
+      amount: displayBalance.toFixed(2)
     });
     
     if (state.settings.pixKey) {
@@ -853,20 +877,20 @@ function updateDashboard() {
     tr.innerHTML = `
       <td class="font-medium">${c.name}</td>
       <td class="text-sm text-gray-400">${carpoolerDebts[c.id].tripsIda} / ${carpoolerDebts[c.id].tripsVolta}</td>
-      <td class="font-mono font-bold ${balance > 0 ? 'text-danger' : 'text-success'}">
-        R$ ${balance.toFixed(2)}
+      <td class="font-mono font-bold ${displayBalance > 0 ? 'text-danger' : 'text-success'}">
+        R$ ${displayBalance <= 0 ? '0.00' : displayBalance.toFixed(2)}
       </td>
       <td>
         <div class="flex gap-2">
-          ${balance > 0 ? `
-            <button class="btn-success text-xs py-1 px-2" onclick="openPaymentModal('${c.id}', ${balance})">
+          ${displayBalance > 0 ? `
+            <button class="btn-success text-xs py-1 px-2" onclick="openPaymentModal('${c.id}', ${displayBalance})">
               <i class="fa-solid fa-plus"></i> ${t('js_btn_register_payment')}
             </button>
             <a href="${waLink}" target="_blank" class="btn-primary bg-green-600 hover:bg-green-700 text-xs py-1 px-2">
               <i class="fa-brands fa-whatsapp"></i> ${t('js_btn_send')}
             </a>
           ` : `
-            <span class="text-xs text-gray-500 italic">${t('js_settled')}</span>
+            <span class="text-xs font-semibold text-success">${t('js_settled')}</span>
           `}
         </div>
       </td>
@@ -878,7 +902,8 @@ function updateDashboard() {
     tbody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500">${t('js_empty_data')}</td></tr>`;
   }
 
-  document.getElementById('dash-total-outstanding').innerText = totalOutstanding.toFixed(2);
+  const normalizedOutstanding = Object.is(Math.round(totalOutstanding * 100) / 100, -0) ? 0 : Math.round(totalOutstanding * 100) / 100;
+  document.getElementById('dash-total-outstanding').innerText = normalizedOutstanding.toFixed(2);
 }
 
 window.openPaymentModal = function(userId, balance) {
@@ -1013,9 +1038,11 @@ window.openEditTripModal = function(id) {
   
   document.getElementById('form-edit-trip').dataset.fuelPrice = historicalFuelPrice.toString();
 
+  const sortedCarpoolers = [...state.carpoolers].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
   const outContainer = document.getElementById('edit-outbound-participants');
   outContainer.innerHTML = '';
-  state.carpoolers.forEach(c => {
+  sortedCarpoolers.forEach(c => {
     const isChecked = trip.outIds.includes(c.id);
     const label = document.createElement('label');
     label.className = 'checkbox-container';
@@ -1029,7 +1056,7 @@ window.openEditTripModal = function(id) {
 
   const retContainer = document.getElementById('edit-return-participants');
   retContainer.innerHTML = '';
-  state.carpoolers.forEach(c => {
+  sortedCarpoolers.forEach(c => {
     const isChecked = trip.retIds.includes(c.id);
     const label = document.createElement('label');
     label.className = 'checkbox-container';
@@ -1142,3 +1169,87 @@ if (document.getElementById('form-edit-trip')) {
     }
   };
 }
+
+// ==========================================
+// PAYMENT HISTORY LOGIC
+// ==========================================
+
+window.openPaymentHistoryModal = async function() {
+  openModal('modal-payment-history');
+  await renderPaymentHistory();
+};
+
+async function renderPaymentHistory() {
+  const tbody = document.getElementById('payment-history-body');
+  if (!tbody) return;
+
+  if (!supabaseClient) {
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500">${t('js_empty_data')}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i>${t('loading_message')}</td></tr>`;
+
+  try {
+    const { data: paymentsData, error } = await supabaseClient
+      .from('payments')
+      .select('id, amount, created_at, carpooler_id, carpoolers(name)')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    tbody.innerHTML = '';
+
+    if (!paymentsData || paymentsData.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500">${t('js_empty_payments')}</td></tr>`;
+      return;
+    }
+
+    paymentsData.forEach(p => {
+      const dateObj = new Date(p.created_at);
+      const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const carpoolerName = (p.carpoolers && p.carpoolers.name) 
+        ? p.carpoolers.name 
+        : (state.carpoolers.find(c => c.id === p.carpooler_id)?.name || t('js_unknown_user'));
+      const amountVal = parseFloat(p.amount) || 0;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="whitespace-nowrap">${dateStr}</td>
+        <td class="font-medium">${carpoolerName}</td>
+        <td class="font-mono font-bold text-success">R$ ${amountVal.toFixed(2)}</td>
+        <td>
+          <button class="text-danger hover:text-red-400" title="Delete payment" onclick="deletePayment('${p.id}')">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error('Error fetching payment history:', err);
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">${t('js_error_fetching')}</td></tr>`;
+  }
+}
+
+window.deletePayment = async function(paymentId) {
+  if (!checkJoinCode()) return;
+  if (confirm(t('js_confirm_delete_payment'))) {
+    if (supabaseClient) {
+      showLoading();
+      try {
+        const { error } = await supabaseClient.from('payments').delete().eq('id', paymentId);
+        if (error) throw error;
+        await fetchData();
+        updateDashboard();
+        await renderPaymentHistory();
+      } catch (err) {
+        console.error('Error deleting payment:', err);
+        alert(t('js_alert_error', { msg: err.message || err.details || "Unknown error" }));
+      } finally {
+        hideLoading();
+      }
+    }
+  }
+};
+
