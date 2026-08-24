@@ -3,8 +3,12 @@ CREATE TABLE carpoolers (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   phone TEXT NOT NULL,
+  default_leg TEXT DEFAULT 'both', -- 'both', 'ida', 'volta'
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration snippet if table already exists:
+-- ALTER TABLE carpoolers ADD COLUMN IF NOT EXISTS default_leg TEXT DEFAULT 'both';
 
 -- Create trips table
 CREATE TABLE trips (

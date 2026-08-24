@@ -266,6 +266,13 @@
           <div class="flex-1">
             <input type="tel" id="new-carpooler-phone" data-i18n-placeholder="set_phone_placeholder" placeholder="Phone (e.g. 5511999999999)" class="input-field" required>
           </div>
+          <div class="w-full md:w-52">
+            <select id="new-carpooler-leg" class="input-field">
+              <option value="both" data-i18n="leg_both">Outbound & Return</option>
+              <option value="ida" data-i18n="leg_ida">Outbound Only</option>
+              <option value="volta" data-i18n="leg_volta">Return Only</option>
+            </select>
+          </div>
           <button type="submit" class="btn-primary">
             <i class="fa-solid fa-plus"></i> <span data-i18n="set_add">Add</span>
           </button>
@@ -277,6 +284,7 @@
               <tr>
                 <th data-i18n="table_name">Name</th>
                 <th data-i18n="table_phone">Phone (WhatsApp)</th>
+                <th data-i18n="table_default_leg">Default Leg</th>
                 <th data-i18n="table_actions">Actions</th>
               </tr>
             </thead>
@@ -321,6 +329,14 @@
         <div>
           <label class="block text-sm mb-1" data-i18n="table_phone">Phone (WhatsApp)</label>
           <input type="tel" id="edit-carpooler-phone" class="input-field" required>
+        </div>
+        <div>
+          <label class="block text-sm mb-1" data-i18n="set_default_leg">Default Leg</label>
+          <select id="edit-carpooler-leg" class="input-field">
+            <option value="both" data-i18n="leg_both">Outbound & Return</option>
+            <option value="ida" data-i18n="leg_ida">Outbound Only</option>
+            <option value="volta" data-i18n="leg_volta">Return Only</option>
+          </select>
         </div>
         <div class="flex justify-end gap-3 mt-6">
           <button type="button" class="btn-secondary" onclick="closeModal('modal-edit-carpooler')" data-i18n="btn_cancel">Cancel</button>

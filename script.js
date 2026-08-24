@@ -82,6 +82,12 @@ const translations = {
     dash_view_payments: "Payment History",
     modal_payment_history: "Payment History",
     table_amount: "Amount",
+    table_default_leg: "Default Leg",
+    set_default_leg: "Default Leg",
+    leg_both: "Outbound & Return",
+    leg_ida: "Outbound Only",
+    leg_volta: "Return Only",
+    js_empty_leg_participants: "No participants configured for this leg.",
     js_empty_payments: "No payments registered yet.",
     js_confirm_delete_payment: "Are you sure you want to delete this payment record? This will adjust balances.",
     js_unknown_user: "Unknown"
@@ -165,6 +171,12 @@ const translations = {
     dash_view_payments: "Histórico de Pagamentos",
     modal_payment_history: "Histórico de Pagamentos",
     table_amount: "Valor",
+    table_default_leg: "Trecho Padrão",
+    set_default_leg: "Trecho Padrão",
+    leg_both: "Ida e Volta",
+    leg_ida: "Somente Ida",
+    leg_volta: "Somente Volta",
+    js_empty_leg_participants: "Nenhum participante configurado para este trecho.",
     js_empty_payments: "Nenhum pagamento registrado ainda.",
     js_confirm_delete_payment: "Tem certeza que deseja excluir este registro de pagamento? Isso ajustará os saldos.",
     js_unknown_user: "Desconhecido"
@@ -347,6 +359,7 @@ async function fetchData() {
         id: c.id,
         name: c.name,
         phone: c.phone,
+        default_leg: c.default_leg || 'both',
         totalPaid: totalPaid
       };
     }).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
@@ -479,20 +492,25 @@ function initSettings() {
     const name = document.getElementById('new-carpooler-name').value.trim();
     let phone = document.getElementById('new-carpooler-phone').value.trim();
     phone = phone.replace(/\D/g, '');
+    const defaultLeg = (document.getElementById('new-carpooler-leg') && document.getElementById('new-carpooler-leg').value) || 'both';
 
     if (name && phone) {
       if (supabaseClient) {
-        const { data, error } = await supabaseClient.from('carpoolers').insert([{ name, phone, total_paid: 0 }]).select();
+        const { data, error } = await supabaseClient.from('carpoolers').insert([{ name, phone, default_leg: defaultLeg, total_paid: 0 }]).select();
         if (!error && data && data.length > 0) {
           state.carpoolers.push({
             id: data[0].id,
             name,
             phone,
+            default_leg: data[0].default_leg || defaultLeg,
             totalPaid: 0
           });
           state.carpoolers.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
           document.getElementById('new-carpooler-name').value = '';
           document.getElementById('new-carpooler-phone').value = '';
+          if (document.getElementById('new-carpooler-leg')) {
+            document.getElementById('new-carpooler-leg').value = 'both';
+          }
           renderCarpoolersSettings();
           initLogger(); // Update checkboxes
         } else {
@@ -528,16 +546,27 @@ function renderCarpoolersSettings() {
   tbody.innerHTML = '';
   
   if (state.carpoolers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500">${t('js_empty_users')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500">${t('js_empty_users')}</td></tr>`;
     return;
   }
 
   const sortedCarpoolers = [...state.carpoolers].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   sortedCarpoolers.forEach(c => {
+    const leg = c.default_leg || 'both';
+    let badgeHtml = '';
+    if (leg === 'ida') {
+      badgeHtml = `<span class="badge badge-ida"><i class="fa-solid fa-arrow-right-from-bracket"></i> ${t('leg_ida')}</span>`;
+    } else if (leg === 'volta') {
+      badgeHtml = `<span class="badge badge-volta"><i class="fa-solid fa-arrow-right-to-bracket"></i> ${t('leg_volta')}</span>`;
+    } else {
+      badgeHtml = `<span class="badge badge-both"><i class="fa-solid fa-arrows-left-right"></i> ${t('leg_both')}</span>`;
+    }
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${c.name}</td>
       <td>${c.phone}</td>
+      <td>${badgeHtml}</td>
       <td>
         <div class="flex gap-3">
           <button class="text-primary hover:text-blue-400" onclick="openEditCarpoolerModal('${c.id}')">
@@ -584,6 +613,9 @@ window.openEditCarpoolerModal = function(id) {
   document.getElementById('edit-carpooler-id').value = user.id;
   document.getElementById('edit-carpooler-name').value = user.name;
   document.getElementById('edit-carpooler-phone').value = user.phone;
+  if (document.getElementById('edit-carpooler-leg')) {
+    document.getElementById('edit-carpooler-leg').value = user.default_leg || 'both';
+  }
   
   openModal('modal-edit-carpooler');
 }
@@ -597,11 +629,12 @@ if (document.getElementById('form-edit-carpooler')) {
     const name = document.getElementById('edit-carpooler-name').value.trim();
     let phone = document.getElementById('edit-carpooler-phone').value.trim();
     phone = phone.replace(/\D/g, '');
+    const defaultLeg = (document.getElementById('edit-carpooler-leg') && document.getElementById('edit-carpooler-leg').value) || 'both';
 
     if (id && name && phone && supabaseClient) {
       showLoading();
       try {
-        const { error } = await supabaseClient.from('carpoolers').update({ name, phone }).eq('id', id);
+        const { error } = await supabaseClient.from('carpoolers').update({ name, phone, default_leg: defaultLeg }).eq('id', id);
         if (error) throw error;
         
         await fetchData();
@@ -629,9 +662,9 @@ function initLogger() {
     document.getElementById('log-fuel-price').value = state.settings.defaultFuelPrice.toFixed(2);
   }
 
-  // Render Checklists
-  renderChecklist('outbound-participants');
-  renderChecklist('return-participants');
+  // Render Checklists (filtered by leg preference)
+  renderChecklist('outbound-participants', 'ida');
+  renderChecklist('return-participants', 'volta');
 
   // Attach live calculation listeners
   const inputs = document.querySelectorAll('#tab-logger input');
@@ -645,7 +678,7 @@ function initLogger() {
   calculatePreview();
 }
 
-function renderChecklist(containerId) {
+function renderChecklist(containerId, legType = 'both') {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
   
@@ -654,8 +687,21 @@ function renderChecklist(containerId) {
     return;
   }
 
-  const sortedCarpoolers = [...state.carpoolers].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-  sortedCarpoolers.forEach(c => {
+  const filteredCarpoolers = state.carpoolers
+    .filter(c => {
+      const leg = c.default_leg || 'both';
+      if (legType === 'ida') return leg === 'both' || leg === 'ida';
+      if (legType === 'volta') return leg === 'both' || leg === 'volta';
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+  if (filteredCarpoolers.length === 0) {
+    container.innerHTML = `<p class="text-xs text-gray-500 py-1">${t('js_empty_leg_participants')}</p>`;
+    return;
+  }
+
+  filteredCarpoolers.forEach(c => {
     const label = document.createElement('label');
     label.className = 'checkbox-container';
     label.innerHTML = `
@@ -1042,7 +1088,12 @@ window.openEditTripModal = function(id) {
 
   const outContainer = document.getElementById('edit-outbound-participants');
   outContainer.innerHTML = '';
-  sortedCarpoolers.forEach(c => {
+  const outCarpoolers = sortedCarpoolers.filter(c => {
+    const isChecked = trip.outIds.includes(c.id);
+    const leg = c.default_leg || 'both';
+    return isChecked || leg === 'both' || leg === 'ida';
+  });
+  outCarpoolers.forEach(c => {
     const isChecked = trip.outIds.includes(c.id);
     const label = document.createElement('label');
     label.className = 'checkbox-container';
@@ -1056,7 +1107,12 @@ window.openEditTripModal = function(id) {
 
   const retContainer = document.getElementById('edit-return-participants');
   retContainer.innerHTML = '';
-  sortedCarpoolers.forEach(c => {
+  const retCarpoolers = sortedCarpoolers.filter(c => {
+    const isChecked = trip.retIds.includes(c.id);
+    const leg = c.default_leg || 'both';
+    return isChecked || leg === 'both' || leg === 'volta';
+  });
+  retCarpoolers.forEach(c => {
     const isChecked = trip.retIds.includes(c.id);
     const label = document.createElement('label');
     label.className = 'checkbox-container';
