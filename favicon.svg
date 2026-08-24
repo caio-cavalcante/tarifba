@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Brand Teal Squircle Background -->
+  <rect width="64" height="64" rx="14" fill="#008075"/>
+  
+  <!-- Solid White Car Silhouette -->
+  <path d="M15 35 L19.5 22.5 C20.6 19.5 23.4 17.5 26.6 17.5 L37.4 17.5 C40.6 17.5 43.4 19.5 44.5 22.5 L49 35 C51.2 35.8 53 38 53 41 L53 46 C53 47.1 52.1 48 51 48 L49 48 C47.9 48 47 47.1 47 46 L47 44 L17 44 L17 46 C17 47.1 16.1 48 15 48 L13 48 C11.9 48 11 47.1 11 46 L11 41 C11 38 12.8 35.8 15 35 Z" fill="#ffffff"/>
+  
+  <!-- Windshield Cutout -->
+  <path d="M21 31 L23.2 23.5 C23.6 22.5 24.6 21.8 25.7 21.8 L38.3 21.8 C39.4 21.8 40.4 22.5 40.8 23.5 L43 31 Z" fill="#008075"/>
+  
+  <!-- Headlights Cutout -->
+  <circle cx="18.5" cy="39" r="2.8" fill="#008075"/>
+  <circle cx="45.5" cy="39" r="2.8" fill="#008075"/>
+</svg>
