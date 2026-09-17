@@ -103,7 +103,13 @@ const translations = {
     btn_lock: "Lock / Sair",
     btn_lock_tooltip: "Lock session and clear DOM data",
     set_lock_title: "Passkey Shield Session",
-    set_lock_desc: "Lock session and purge cached carpool data from browser memory and DOM."
+    set_lock_desc: "Lock session and purge cached carpool data from browser memory and DOM.",
+    gate_restricted_label: "Restricted Access",
+    gate_minimize_tooltip: "Minimize to header (Explore in Visitor Mode)",
+    gate_restore_tooltip: "Restore Passkey Shield (Unlock admin access)",
+    gate_visitor_badge: "Visitor Mode",
+    gate_explore_link: "Explore UI in Visitor Mode",
+    visitor_banner_notice: "Visitor Mode: Database queries are blocked. To manage carpool records, unlock with the admin passkey."
   },
   pt: {
     app_title: "TARIFBA",
@@ -205,7 +211,13 @@ const translations = {
     btn_lock: "Bloquear / Sair",
     btn_lock_tooltip: "Bloquear sessão e limpar dados da tela",
     set_lock_title: "Sessão do Escudo de Acesso",
-    set_lock_desc: "Bloqueia a sessão e remove todos os dados da memória e da tela."
+    set_lock_desc: "Bloqueia a sessão e remove todos os dados da memória e da tela.",
+    gate_restricted_label: "Acesso Restrito",
+    gate_minimize_tooltip: "Minimizar para o cabeçalho (Explorar em Modo Visitante)",
+    gate_restore_tooltip: "Restaurar Escudo de Acesso (Desbloquear modo admin)",
+    gate_visitor_badge: "Modo Visitante",
+    gate_explore_link: "Explorar interface em Modo Visitante",
+    visitor_banner_notice: "Modo Visitante: Consultas ao banco estão bloqueadas. Para gerenciar os dados, desbloqueie com a chave de admin."
   }
 };
 
@@ -481,9 +493,66 @@ function isPasskeyValid(key) {
   return key.trim() === expected.trim();
 }
 
+let isVisitorMode = false;
+
 function isAppUnlocked() {
+  const storedKey = getStoredPasskey();
+  return isPasskeyValid(storedKey);
+}
+
+function minimizeGate() {
+  isVisitorMode = true;
+
+  // Hide the access gate modal
+  const gateEl = document.getElementById('access-gate');
+  if (gateEl) gateEl.classList.add('hidden');
+
+  // Reveal the main app container for exploration
   const mainEl = document.getElementById('app-main');
-  return mainEl && !mainEl.classList.contains('hidden');
+  if (mainEl) mainEl.classList.remove('hidden');
+
+  // Show visitor banner in main
+  const bannerEl = document.getElementById('visitor-banner');
+  if (bannerEl) bannerEl.classList.remove('hidden');
+
+  // Show the restore button ("Visitor Mode 🗖") in the top header
+  const restoreBtn = document.getElementById('btn-restore-gate');
+  if (restoreBtn) restoreBtn.classList.remove('hidden');
+
+  // Hide quick lock (since not logged in as admin)
+  const lockBtn = document.getElementById('btn-quick-lock');
+  if (lockBtn) lockBtn.classList.add('hidden');
+
+  // Initialize UI components for preview without querying Supabase
+  initLogger();
+  updateDashboard();
+  updateHistory();
+  renderCarpoolersSettings();
+}
+
+function restoreGate() {
+  isVisitorMode = false;
+
+  // Hide main container
+  const mainEl = document.getElementById('app-main');
+  if (mainEl) mainEl.classList.add('hidden');
+
+  // Hide visitor banner
+  const bannerEl = document.getElementById('visitor-banner');
+  if (bannerEl) bannerEl.classList.add('hidden');
+
+  // Hide restore button in header
+  const restoreBtn = document.getElementById('btn-restore-gate');
+  if (restoreBtn) restoreBtn.classList.add('hidden');
+
+  // Show the access gate modal
+  const gateEl = document.getElementById('access-gate');
+  if (gateEl) gateEl.classList.remove('hidden');
+
+  const passkeyInput = document.getElementById('gate-passkey-input');
+  if (passkeyInput) {
+    passkeyInput.focus();
+  }
 }
 
 async function unlockApp(key, rememberDevice = true) {
@@ -491,6 +560,8 @@ async function unlockApp(key, rememberDevice = true) {
   if (!isPasskeyValid(trimmed)) {
     return false;
   }
+
+  isVisitorMode = false;
 
   // Persist passkey based on remember option
   try {
@@ -513,6 +584,12 @@ async function unlockApp(key, rememberDevice = true) {
   // Update UI Visibility
   const gateEl = document.getElementById('access-gate');
   if (gateEl) gateEl.classList.add('hidden');
+
+  const bannerEl = document.getElementById('visitor-banner');
+  if (bannerEl) bannerEl.classList.add('hidden');
+
+  const restoreBtn = document.getElementById('btn-restore-gate');
+  if (restoreBtn) restoreBtn.classList.add('hidden');
 
   const mainEl = document.getElementById('app-main');
   if (mainEl) mainEl.classList.remove('hidden');
@@ -538,6 +615,8 @@ async function unlockApp(key, rememberDevice = true) {
 }
 
 function lockApp() {
+  isVisitorMode = false;
+
   // Clear stored passkey and join code
   try {
     localStorage.removeItem('carpool_passkey');
@@ -594,9 +673,15 @@ function lockApp() {
   closeModal('modal-register-payment');
   closeModal('modal-payment-history');
 
-  // Hide main container
+  // Hide main container & visitor banner
   const mainEl = document.getElementById('app-main');
   if (mainEl) mainEl.classList.add('hidden');
+
+  const bannerEl = document.getElementById('visitor-banner');
+  if (bannerEl) bannerEl.classList.add('hidden');
+
+  const restoreBtn = document.getElementById('btn-restore-gate');
+  if (restoreBtn) restoreBtn.classList.add('hidden');
 
   // Hide lock button
   const lockBtn = document.getElementById('btn-quick-lock');
@@ -659,6 +744,30 @@ function initAccessGate() {
       if (gateError) gateError.classList.add('hidden');
       await unlockApp(enteredKey, remember);
     };
+  }
+
+  // Minimize button ("_")
+  const minimizeBtn = document.getElementById('btn-minimize-gate');
+  if (minimizeBtn) {
+    minimizeBtn.onclick = minimizeGate;
+  }
+
+  // Explore preview link
+  const exploreLink = document.getElementById('btn-explore-preview');
+  if (exploreLink) {
+    exploreLink.onclick = minimizeGate;
+  }
+
+  // Restore button in header
+  const restoreBtn = document.getElementById('btn-restore-gate');
+  if (restoreBtn) {
+    restoreBtn.onclick = restoreGate;
+  }
+
+  // Unlock button in visitor banner
+  const bannerUnlockBtn = document.getElementById('btn-banner-unlock');
+  if (bannerUnlockBtn) {
+    bannerUnlockBtn.onclick = restoreGate;
   }
 
   // Quick lock button in header
@@ -736,9 +845,9 @@ function initTabs() {
 
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      // If locked, prevent switching and nudge access gate
+      // If locked and not in visitor mode, prevent switching and nudge access gate
       const storedKey = getStoredPasskey();
-      if (!isPasskeyValid(storedKey)) {
+      if (!isPasskeyValid(storedKey) && !isVisitorMode) {
         const gateCard = document.querySelector('#access-gate .card');
         if (gateCard) {
           gateCard.classList.remove('shake');
