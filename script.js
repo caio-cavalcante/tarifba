@@ -90,7 +90,20 @@ const translations = {
     js_empty_leg_participants: "No participants configured for this leg.",
     js_empty_payments: "No payments registered yet.",
     js_confirm_delete_payment: "Are you sure you want to delete this payment record? This will adjust balances.",
-    js_unknown_user: "Unknown"
+    js_unknown_user: "Unknown",
+    // Passkey Shield Gatekeeper
+    gate_subtitle: "Passkey Shield",
+    gate_instruction: "Enter the admin passkey to unlock the application and load database records.",
+    gate_input_label: "Admin Passkey",
+    gate_input_placeholder: "Enter admin passkey",
+    gate_btn_unlock: "Unlock",
+    gate_remember_me: "Remember on this device",
+    gate_single_tenant_note: "Admin Only",
+    gate_invalid_key: "Invalid passkey. Access denied.",
+    btn_lock: "Lock / Sair",
+    btn_lock_tooltip: "Lock session and clear DOM data",
+    set_lock_title: "Passkey Shield Session",
+    set_lock_desc: "Lock session and purge cached carpool data from browser memory and DOM."
   },
   pt: {
     app_title: "TARIFBA",
@@ -179,7 +192,20 @@ const translations = {
     js_empty_leg_participants: "Nenhum participante configurado para este trecho.",
     js_empty_payments: "Nenhum pagamento registrado ainda.",
     js_confirm_delete_payment: "Tem certeza que deseja excluir este registro de pagamento? Isso ajustará os saldos.",
-    js_unknown_user: "Desconhecido"
+    js_unknown_user: "Desconhecido",
+    // Passkey Shield Gatekeeper
+    gate_subtitle: "Escudo de Acesso",
+    gate_instruction: "Insira a chave de admin para desbloquear o aplicativo e carregar os dados.",
+    gate_input_label: "Chave de Acesso Admin",
+    gate_input_placeholder: "Digite a chave de admin",
+    gate_btn_unlock: "Desbloquear",
+    gate_remember_me: "Lembrar neste dispositivo",
+    gate_single_tenant_note: "Apenas Admin",
+    gate_invalid_key: "Chave inválida. Acesso negado.",
+    btn_lock: "Bloquear / Sair",
+    btn_lock_tooltip: "Bloquear sessão e limpar dados da tela",
+    set_lock_title: "Sessão do Escudo de Acesso",
+    set_lock_desc: "Bloqueia a sessão e remove todos os dados da memória e da tela."
   }
 };
 
@@ -215,6 +241,12 @@ function applyTranslations() {
       el.setAttribute('placeholder', translations[currentLang][key]);
     }
   });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    if (translations[currentLang] && translations[currentLang][key]) {
+      el.setAttribute('title', translations[currentLang][key]);
+    }
+  });
   
   const langBtn = document.getElementById('btn-toggle-lang');
   if (langBtn) {
@@ -227,14 +259,16 @@ function toggleLanguage() {
   localStorage.setItem('carpool_lang', currentLang);
   applyTranslations();
   
-  // Re-render
-  renderCarpoolersSettings();
-  initLogger();
-  updateDashboard();
-  updateHistory();
-  const paymentModal = document.getElementById('modal-payment-history');
-  if (paymentModal && !paymentModal.classList.contains('hidden')) {
-    renderPaymentHistory();
+  // Re-render data views if unlocked
+  if (isAppUnlocked()) {
+    renderCarpoolersSettings();
+    initLogger();
+    updateDashboard();
+    updateHistory();
+    const paymentModal = document.getElementById('modal-payment-history');
+    if (paymentModal && !paymentModal.classList.contains('hidden')) {
+      renderPaymentHistory();
+    }
   }
 }
 
@@ -315,7 +349,7 @@ try {
 }
 
 function checkJoinCode() {
-  const expectedCode = (window.env && window.env.JOIN_CODE) || '';
+  const expectedCode = getPreconfiguredAdminKey();
   if (!expectedCode) return true;
   if (currentJoinCode !== expectedCode) {
     alert(t('js_alert_wrong_join_code'));
@@ -337,20 +371,49 @@ function loadLocalSettings() {
   }
 }
 
+// ==========================================
+// MODULAR DATA FETCHING (SUPABASE)
+// ==========================================
+
+let cachedCarpoolers = [];
+let cachedTrips = [];
+let cachedPayments = [];
+
+async function fetchCarpoolers() {
+  if (!supabaseClient) return [];
+  const { data, error } = await supabaseClient.from('carpoolers').select('*');
+  if (error) throw error;
+  cachedCarpoolers = data || [];
+  return cachedCarpoolers;
+}
+
+async function fetchTrips() {
+  if (!supabaseClient) return [];
+  const { data, error } = await supabaseClient.from('trips').select('*, trip_participants(*)');
+  if (error) throw error;
+  cachedTrips = data || [];
+  return cachedTrips;
+}
+
+async function fetchPayments() {
+  if (!supabaseClient) return [];
+  const { data, error } = await supabaseClient.from('payments').select('*');
+  if (error) throw error;
+  cachedPayments = data || [];
+  return cachedPayments;
+}
+
 async function fetchData() {
   if (!supabaseClient) {
     console.error("Supabase client not initialized.");
     return;
   }
   try {
-    const { data: carpoolersData, error: cErr } = await supabaseClient.from('carpoolers').select('*');
-    if (cErr) throw cErr;
-    
-    const { data: tripsData, error: tErr } = await supabaseClient.from('trips').select('*, trip_participants(*)');
-    if (tErr) throw tErr;
-
-    const { data: paymentsData, error: pErr } = await supabaseClient.from('payments').select('*');
-    if (pErr) throw pErr;
+    const [carpoolersData, tripsData, paymentsData] = await Promise.all([
+      fetchCarpoolers(),
+      fetchTrips(),
+      fetchPayments()
+    ]);
 
     state.carpoolers = carpoolersData.map(c => {
       const userPayments = paymentsData.filter(p => p.carpooler_id === c.id);
@@ -365,11 +428,11 @@ async function fetchData() {
     }).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
     state.trips = tripsData.map(t => {
-      const outIds = t.trip_participants.filter(tp => tp.present_ida).map(tp => tp.carpooler_id);
-      const retIds = t.trip_participants.filter(tp => tp.present_volta).map(tp => tp.carpooler_id);
+      const outIds = (t.trip_participants || []).filter(tp => tp.present_ida).map(tp => tp.carpooler_id);
+      const retIds = (t.trip_participants || []).filter(tp => tp.present_volta).map(tp => tp.carpooler_id);
       
       const individualCosts = {};
-      t.trip_participants.forEach(tp => {
+      (t.trip_participants || []).forEach(tp => {
         individualCosts[tp.carpooler_id] = {
           total: parseFloat(tp.cost_total) || 0,
           ida: parseFloat(tp.cost_ida) || 0,
@@ -397,10 +460,225 @@ async function fetchData() {
 }
 
 // ==========================================
+// PASSKEY SHIELD / GATEKEEPER
+// ==========================================
+
+function getPreconfiguredAdminKey() {
+  return (window.env && (window.env.ADMIN_PASSKEY || window.env.JOIN_CODE)) || '';
+}
+
+function getStoredPasskey() {
+  try {
+    return localStorage.getItem('carpool_passkey') || sessionStorage.getItem('carpool_passkey') || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function isPasskeyValid(key) {
+  const expected = getPreconfiguredAdminKey();
+  if (!expected || !key) return false;
+  return key.trim() === expected.trim();
+}
+
+function isAppUnlocked() {
+  const mainEl = document.getElementById('app-main');
+  return mainEl && !mainEl.classList.contains('hidden');
+}
+
+async function unlockApp(key, rememberDevice = true) {
+  const trimmed = (key || '').trim();
+  if (!isPasskeyValid(trimmed)) {
+    return false;
+  }
+
+  // Persist passkey based on remember option
+  try {
+    if (rememberDevice) {
+      localStorage.setItem('carpool_passkey', trimmed);
+      sessionStorage.removeItem('carpool_passkey');
+    } else {
+      sessionStorage.setItem('carpool_passkey', trimmed);
+      localStorage.removeItem('carpool_passkey');
+    }
+    // Also synchronize currentJoinCode so user can perform administrative mutations seamlessly
+    currentJoinCode = trimmed;
+    localStorage.setItem('carpool_join_code', trimmed);
+    const jcInput = document.getElementById('settings-join-code');
+    if (jcInput) jcInput.value = trimmed;
+  } catch (e) {
+    console.warn("Error persisting passkey:", e);
+  }
+
+  // Update UI Visibility
+  const gateEl = document.getElementById('access-gate');
+  if (gateEl) gateEl.classList.add('hidden');
+
+  const mainEl = document.getElementById('app-main');
+  if (mainEl) mainEl.classList.remove('hidden');
+
+  const lockBtn = document.getElementById('btn-quick-lock');
+  if (lockBtn) lockBtn.classList.remove('hidden');
+
+  // Trigger Supabase queries (Zero-Fetch initial state ended)
+  showLoading();
+  try {
+    await fetchData();
+    initLogger();
+    updateDashboard();
+    updateHistory();
+    renderCarpoolersSettings();
+  } catch (e) {
+    console.error("Error loading data after unlocking:", e);
+  } finally {
+    hideLoading();
+  }
+
+  return true;
+}
+
+function lockApp() {
+  // Clear stored passkey and join code
+  try {
+    localStorage.removeItem('carpool_passkey');
+    sessionStorage.removeItem('carpool_passkey');
+    localStorage.removeItem('carpool_join_code');
+  } catch (e) {}
+
+  currentJoinCode = '';
+
+  // Clear in-memory state
+  state.carpoolers = [];
+  state.trips = [];
+  cachedCarpoolers = [];
+  cachedTrips = [];
+  cachedPayments = [];
+
+  // Unmount & clear all cached data from DOM
+  const dashExpenses = document.getElementById('dash-total-expenses');
+  if (dashExpenses) dashExpenses.textContent = '0.00';
+
+  const dashOutstanding = document.getElementById('dash-total-outstanding');
+  if (dashOutstanding) dashOutstanding.textContent = '0.00';
+
+  const dashBalances = document.getElementById('dash-balances-body');
+  if (dashBalances) dashBalances.innerHTML = '';
+
+  const histBody = document.getElementById('history-body');
+  if (histBody) histBody.innerHTML = '';
+
+  const outPax = document.getElementById('outbound-participants');
+  if (outPax) outPax.innerHTML = '';
+
+  const retPax = document.getElementById('return-participants');
+  if (retPax) retPax.innerHTML = '';
+
+  const settingsCarpoolers = document.getElementById('settings-carpoolers-body');
+  if (settingsCarpoolers) settingsCarpoolers.innerHTML = '';
+
+  const paymentHistBody = document.getElementById('payment-history-body');
+  if (paymentHistBody) paymentHistBody.innerHTML = '';
+
+  const previewSplits = document.getElementById('preview-splits');
+  if (previewSplits) previewSplits.innerHTML = '';
+
+  const previewCost = document.getElementById('preview-total-cost');
+  if (previewCost) previewCost.textContent = '0.00';
+
+  const jcInput = document.getElementById('settings-join-code');
+  if (jcInput) jcInput.value = '';
+
+  // Close any open modals
+  closeModal('modal-edit-trip');
+  closeModal('modal-edit-carpooler');
+  closeModal('modal-register-payment');
+  closeModal('modal-payment-history');
+
+  // Hide main container
+  const mainEl = document.getElementById('app-main');
+  if (mainEl) mainEl.classList.add('hidden');
+
+  // Hide lock button
+  const lockBtn = document.getElementById('btn-quick-lock');
+  if (lockBtn) lockBtn.classList.add('hidden');
+
+  // Show access gate
+  const gateEl = document.getElementById('access-gate');
+  if (gateEl) gateEl.classList.remove('hidden');
+
+  const passkeyInput = document.getElementById('gate-passkey-input');
+  if (passkeyInput) {
+    passkeyInput.value = '';
+    passkeyInput.focus();
+  }
+
+  const gateError = document.getElementById('gate-error');
+  if (gateError) gateError.classList.add('hidden');
+}
+
+function initAccessGate() {
+  const gateForm = document.getElementById('form-access-gate');
+  const passkeyInput = document.getElementById('gate-passkey-input');
+  const gateError = document.getElementById('gate-error');
+  const rememberToggle = document.getElementById('gate-remember-toggle');
+  const toggleVisibilityBtn = document.getElementById('btn-toggle-gate-visibility');
+  const eyeIcon = document.getElementById('gate-eye-icon');
+
+  if (toggleVisibilityBtn && passkeyInput && eyeIcon) {
+    toggleVisibilityBtn.onclick = () => {
+      if (passkeyInput.type === 'password') {
+        passkeyInput.type = 'text';
+        eyeIcon.className = 'fa-regular fa-eye-slash';
+      } else {
+        passkeyInput.type = 'password';
+        eyeIcon.className = 'fa-regular fa-eye';
+      }
+    };
+  }
+
+  if (gateForm) {
+    gateForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const enteredKey = passkeyInput ? passkeyInput.value : '';
+      const remember = rememberToggle ? rememberToggle.checked : true;
+
+      if (!isPasskeyValid(enteredKey)) {
+        if (gateError) {
+          gateError.classList.remove('hidden');
+        }
+        const gateCard = document.querySelector('#access-gate .card');
+        if (gateCard) {
+          gateCard.classList.remove('shake');
+          void gateCard.offsetWidth; // trigger reflow
+          gateCard.classList.add('shake');
+        }
+        if (passkeyInput) passkeyInput.focus();
+        return;
+      }
+
+      if (gateError) gateError.classList.add('hidden');
+      await unlockApp(enteredKey, remember);
+    };
+  }
+
+  // Quick lock button in header
+  const quickLockBtn = document.getElementById('btn-quick-lock');
+  if (quickLockBtn) {
+    quickLockBtn.onclick = lockApp;
+  }
+
+  // Quick lock button in Settings
+  const settingsLockBtn = document.getElementById('btn-settings-lock');
+  if (settingsLockBtn) {
+    settingsLockBtn.onclick = lockApp;
+  }
+}
+
+// ==========================================
 // INITIALIZATION
 // ==========================================
 
-function initApp() {
+async function initApp() {
   console.log("App initialization started...");
   try { loadLocalSettings(); console.log("loadLocalSettings done"); } catch (e) { console.error("Error in loadLocalSettings:", e); }
   
@@ -427,17 +705,19 @@ function initApp() {
 
   try { initTabs(); console.log("initTabs done"); } catch (e) { console.error("Error in initTabs:", e); }
   try { initSettings(); console.log("initSettings done"); } catch (e) { console.error("Error in initSettings:", e); }
-  
-  fetchData().then(() => {
-    console.log("fetchData done");
-    try { initLogger(); console.log("initLogger done"); } catch (e) { console.error("Error in initLogger:", e); }
-    try { updateDashboard(); console.log("updateDashboard done"); } catch (e) { console.error("Error in updateDashboard:", e); }
-    try { updateHistory(); console.log("updateHistory done"); } catch (e) { console.error("Error in updateHistory:", e); }
-    try { renderCarpoolersSettings(); console.log("renderCarpoolersSettings done"); } catch (e) { console.error("Error in renderCarpoolers:", e); }
-    console.log("App initialization complete!");
-  }).catch(e => {
-    console.error("Error during fetchData:", e);
-  });
+  try { initAccessGate(); console.log("initAccessGate done"); } catch (e) { console.error("Error in initAccessGate:", e); }
+
+  // Zero-Fetch Initial State Check
+  const storedKey = getStoredPasskey();
+  if (isPasskeyValid(storedKey)) {
+    console.log("Valid stored passkey detected. Unlocking app...");
+    const isRemembered = !!localStorage.getItem('carpool_passkey');
+    await unlockApp(storedKey, isRemembered);
+  } else {
+    console.log("Passkey Shield active: zero-fetch locked mode.");
+    lockApp();
+  }
+  console.log("App initialization complete!");
 }
 
 if (document.readyState === 'loading') {
@@ -456,6 +736,20 @@ function initTabs() {
 
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
+      // If locked, prevent switching and nudge access gate
+      const storedKey = getStoredPasskey();
+      if (!isPasskeyValid(storedKey)) {
+        const gateCard = document.querySelector('#access-gate .card');
+        if (gateCard) {
+          gateCard.classList.remove('shake');
+          void gateCard.offsetWidth; // trigger reflow
+          gateCard.classList.add('shake');
+        }
+        const passkeyInput = document.getElementById('gate-passkey-input');
+        if (passkeyInput) passkeyInput.focus();
+        return;
+      }
+
       tabBtns.forEach(b => b.classList.remove('active', 'text-primary', 'border-primary'));
       tabContents.forEach(c => c.classList.add('hidden'));
       tabContents.forEach(c => c.classList.remove('active'));
@@ -463,8 +757,10 @@ function initTabs() {
       btn.classList.add('active', 'text-primary', 'border-primary');
       const targetId = btn.getAttribute('data-tab');
       const targetContent = document.getElementById(targetId);
-      targetContent.classList.remove('hidden');
-      targetContent.classList.add('active');
+      if (targetContent) {
+        targetContent.classList.remove('hidden');
+        targetContent.classList.add('active');
+      }
 
       // Refresh specific tabs when opened
       if (targetId === 'tab-logger') initLogger();
