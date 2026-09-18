@@ -1,2 +1,5 @@
 .env
 env.js
+
+.agents
+skills-lock.json
